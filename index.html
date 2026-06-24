@@ -424,6 +424,57 @@
                                         <input type="text" id="prop-terms" placeholder="例: 月額賃料 50万円希望" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
                                     </div>
                                 </div>
+
+                                <!-- Broker and Commission Fields -->
+                                <div class="border-t border-slate-200/60 pt-3 space-y-3">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block font-bold text-slate-600 mb-1">仲介業者</label>
+                                            <select id="prop-has-broker" onchange="toggleBrokerFields()" class="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
+                                                <option value="no">なし</option>
+                                                <option value="yes">あり</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Conditional details: Hidden if has-broker is 'no' -->
+                                    <div id="broker-details-container" class="hidden grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block font-bold text-slate-600 mb-1">業者名</label>
+                                            <input type="text" id="prop-broker-name" placeholder="例: ○○不動産" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                        </div>
+                                        <div>
+                                            <label class="block font-bold text-slate-600 mb-1">担当者名</label>
+                                            <input type="text" id="prop-broker-contact" placeholder="例: 山田" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block font-bold text-slate-600 mb-1">仲介手数料</label>
+                                            <select id="prop-broker-fee" class="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                                <option value="0">不要 (0ヶ月)</option>
+                                                <option value="1">1ヶ月</option>
+                                                <option value="2">2ヶ月</option>
+                                                <option value="3">3ヶ月</option>
+                                                <option value="4">4ヶ月</option>
+                                                <option value="5">5ヶ月</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block font-bold text-slate-600 mb-1">企画料</label>
+                                            <select id="prop-planning-fee" class="w-full px-2 py-1 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                                <option value="0">不要 (0ヶ月)</option>
+                                                <option value="1">1ヶ月</option>
+                                                <option value="2">2ヶ月</option>
+                                                <option value="3">3ヶ月</option>
+                                                <option value="4">4ヶ月</option>
+                                                <option value="5">5ヶ月</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
 
@@ -604,7 +655,7 @@
                 rank: "A",
                 visits: [
                     { date: "2026-04-12", detail: "初回挨拶、登記簿謄本をもとにアプローチ。実家の相続関係整理中とのこと。" },
-                    { date: "2026-05-18", detail: "再訪問、事業定借の概要を提案。抵当権抹消の目処について確認打診中。" }
+                    { date: "2026-05-18", detail: "再訪問、事業定借 of 提案。抵当権抹消の打診中。" }
                 ],
                 tenants: [
                     { name: "和食レストランA", feel: "A", application: "未受領" },
@@ -612,6 +663,11 @@
                 ],
                 lat: 35.424424,
                 lng: 139.362142,
+                hasBroker: "no",
+                brokerName: "",
+                brokerContact: "",
+                brokerFee: 0,
+                planningFee: 0,
                 createdAt: "2026-04-10T09:00:00.000Z"
             },
             {
@@ -629,13 +685,18 @@
                 terms: "普通賃貸借、月額110万円、保証金10ヶ月",
                 rank: "B",
                 visits: [
-                    { date: "2026-05-05", detail: "ビル内見及び経済条件交渉。申込書を頂ければ賃料交渉も可能との感触。" }
+                    { date: "2026-05-05", detail: "ビル内見及び経済条件交渉。申込書獲得に向けて調整中。" }
                 ],
                 tenants: [
                     { name: "フィットネスジムC", feel: "A", application: "受領" }
                 ],
                 lat: 35.653421,
                 lng: 139.339243,
+                hasBroker: "yes",
+                brokerName: "東急リバブル",
+                brokerContact: "佐藤 茂",
+                brokerFee: 1,
+                planningFee: 1,
                 createdAt: "2026-05-01T11:30:00.000Z"
             },
             {
@@ -653,11 +714,16 @@
                 terms: "定期借地残存12年、現行賃料月額60万円引き継ぎ",
                 rank: "C",
                 visits: [
-                    { date: "2026-03-28", detail: "前テナント撤退時期の確認および原状回復義務免除について地権者に挨拶。" }
+                    { date: "2026-03-28", detail: "前テナント撤退時期の確認および原状回復義務免除について交渉中。" }
                 ],
                 tenants: [],
                 lat: 35.334125,
                 lng: 139.313412,
+                hasBroker: "no",
+                brokerName: "",
+                brokerContact: "",
+                brokerFee: 0,
+                planningFee: 0,
                 createdAt: "2026-03-25T15:20:00.000Z"
             }
         ];
@@ -1233,8 +1299,17 @@
             document.getElementById(rowId)?.remove();
         }
 
-        function goBackFromDetail() {
-            switchView(previousView);
+        // Toggling Brokerage Conditional Input Elements
+        function toggleBrokerFields() {
+            const hasBroker = document.getElementById('prop-has-broker').value;
+            const container = document.getElementById('broker-details-container');
+            if (hasBroker === 'yes') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('prop-broker-name').value = '';
+                document.getElementById('prop-broker-contact').value = '';
+            }
         }
 
         function openNewPropertyView() {
@@ -1250,6 +1325,14 @@
 
             addVisitRow(new Date().toISOString().substring(0, 10), "物件基本情報を確認、推進プロセスを開始。");
             addTenantRow("", "B", "未受領");
+
+            // Reset Broker inputs
+            document.getElementById('prop-has-broker').value = 'no';
+            document.getElementById('prop-broker-name').value = '';
+            document.getElementById('prop-broker-contact').value = '';
+            document.getElementById('prop-broker-fee').value = '0';
+            document.getElementById('prop-planning-fee').value = '0';
+            toggleBrokerFields();
 
             switchView('detail');
             
@@ -1287,6 +1370,14 @@
 
             document.getElementById('prop-consent').value = p.consent || '未承諾';
             document.getElementById('prop-terms').value = p.terms || '';
+
+            // Inject broker details
+            document.getElementById('prop-has-broker').value = p.hasBroker || 'no';
+            document.getElementById('prop-broker-name').value = p.brokerName || '';
+            document.getElementById('prop-broker-contact').value = p.brokerContact || '';
+            document.getElementById('prop-broker-fee').value = p.brokerFee !== undefined ? p.brokerFee : '0';
+            document.getElementById('prop-planning-fee').value = p.planningFee !== undefined ? p.planningFee : '0';
+            toggleBrokerFields();
 
             const visitsContainer = document.getElementById('visits-container');
             visitsContainer.innerHTML = "";
@@ -1495,6 +1586,13 @@
             const consent = document.getElementById('prop-consent').value;
             const terms = document.getElementById('prop-terms').value.trim();
 
+            // Retrieve Broker specs
+            const hasBroker = document.getElementById('prop-has-broker').value;
+            const brokerName = document.getElementById('prop-broker-name').value.trim();
+            const brokerContact = document.getElementById('prop-broker-contact').value.trim();
+            const brokerFee = parseInt(document.getElementById('prop-broker-fee').value) || 0;
+            const planningFee = parseInt(document.getElementById('prop-planning-fee').value) || 0;
+
             const visitElements = document.getElementById('visits-container').children;
             const visits = [];
             for (let el of visitElements) {
@@ -1523,6 +1621,9 @@
                     id: newId,
                     name, type, rank, address, chiban, area, zone, confirmDate,
                     landowners, mortgage, consent, terms, visits, tenants, lat, lng,
+                    hasBroker, brokerName: hasBroker === 'yes' ? brokerName : '',
+                    brokerContact: hasBroker === 'yes' ? brokerContact : '',
+                    brokerFee, planningFee,
                     createdAt: new Date().toISOString()
                 };
                 properties.push(newProp);
@@ -1533,7 +1634,10 @@
                     properties[idx] = {
                         ...properties[idx],
                         name, type, rank, address, chiban, area, zone, confirmDate,
-                        landowners, mortgage, consent, terms, visits, tenants, lat, lng
+                        landowners, mortgage, consent, terms, visits, tenants, lat, lng,
+                        hasBroker, brokerName: hasBroker === 'yes' ? brokerName : '',
+                        brokerContact: hasBroker === 'yes' ? brokerContact : '',
+                        brokerFee, planningFee
                     };
                     showToast("物件推進データおよびテナントDBを更新しました。", "success");
                 }
@@ -1543,7 +1647,7 @@
             switchView(previousView);
         }
 
-        // Trigger safe custom confirm modal for Property deletion
+        // Custom confirmation dialogue logic
         function triggerDeleteProperty() {
             const id = document.getElementById('prop-id').value;
             if (!id) return;
@@ -1553,7 +1657,7 @@
 
             callConfirm(
                 "物件推進計画の削除", 
-                `「${p.name}」に関する地権者情報・面談履歴・想定テナント連動データを含む、データベース上のすべてのレコードが完全に抹消されます。本当に削除してよろしいですか？`, 
+                `「${p.name}」に関する地権者情報・面談履歴・想定テナント連動データ・仲介業者登録内容を含む、データベース上のすべてのレコードが完全に抹消されます。本当に削除してよろしいですか？`, 
                 function() {
                     properties = properties.filter(item => item.id !== id);
                     saveData();
@@ -1589,7 +1693,6 @@
             document.getElementById('tenant-modal').classList.add('hidden');
         }
 
-        // Handlers for Manual Tenants
         function handleTenantSubmit(event) {
             event.preventDefault();
 
@@ -1625,7 +1728,7 @@
             closeTenantModal();
         }
 
-        // Trigger safe custom confirm modal for Manual Tenant deletion
+        // Custom confirmation dialogue logic for manual tenant delete
         function triggerDeleteManualTenant(tenantId) {
             const t = manualTenants.find(item => item.id === tenantId);
             if (!t) return;
@@ -1688,7 +1791,6 @@
             document.getElementById('export-modal').classList.add('hidden');
         }
 
-        // Clipboard Copy
         function copyExportJson() {
             const textarea = document.getElementById('export-data-json');
             textarea.select();
@@ -1696,7 +1798,6 @@
             showToast("JSONデータをクリップボードにコピーしました！", "success");
         }
 
-        // File Download
         function downloadBackupFile() {
             const stateExport = {
                 properties: properties,
