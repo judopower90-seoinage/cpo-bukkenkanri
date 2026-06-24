@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>物件開発進捗管理データベース</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS Custom Configurations -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            150: '#eef2f6',
+                            950: '#0b0f19',
+                        },
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#4f46e5',
+                            600: '#4338ca',
+                            700: '#3730a3',
+                            800: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Leaflet CSS & JS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 380px;
+            border-radius: 0.75rem;
+            z-index: 10;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Mobile Touch Target Optimizations */
+        button, select, input, textarea {
+            min-height: 36px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
+
+    <!-- Premium Clean Header -->
+    <header class="bg-slate-900 text-white shadow-sm shrink-0 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3 cursor-pointer w-full md:w-auto" onclick="switchView('dashboard')">
+                <div class="bg-brand-500 p-2 rounded-lg text-white shadow-md shadow-brand-500/20">
+                    <i data-lucide="compass" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-extrabold tracking-tight">物件開発進捗管理データベース</h1>
+                    <p class="text-[9px] text-slate-400">土地開発・ビルイン物件・出店テナントの一元管理</p>
+                </div>
+            </div>
+            
+            <!-- Navigation System -->
+            <div class="flex flex-wrap items-center gap-1.5 w-full md:w-auto justify-start md:justify-end">
+                <button onclick="switchView('dashboard')" id="nav-dashboard" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> マップ
+                </button>
+                <button onclick="switchView('list')" id="nav-list" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                    <i data-lucide="map-pinned" class="w-3.5 h-3.5"></i> 物件一覧
+                </button>
+                <button onclick="switchView('tenant-db')" id="nav-tenant-db" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i> テナントDB
+                </button>
+                
+                <div class="h-6 w-[1px] bg-slate-800 mx-1 hidden sm:block"></div>
+                
+                <!-- Action Buttons -->
+                <button onclick="openNewPropertyView()" class="flex items-center gap-1 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-lg shadow-sm transition">
+                    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> 新規登録
+                </button>
+                
+                <!-- Drive Synchronization Tool Button -->
+                <button onclick="openExportModal()" class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition text-xs font-bold" title="Googleドライブ連携・データ管理">
+                    <i data-lucide="cloud-cog" class="w-4 h-4 text-brand-400"></i> クラウド同期・管理
+                </button>
+                <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full flex flex-col gap-4">
+        
+        <!-- ==================== TOP WIDGETS ==================== -->
+        <section id="stats-widget" class="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+            <div class="bg-white p-3.5 rounded-xl shadow-xs border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] text-slate-500 font-bold tracking-wider uppercase">総推進物件数</p>
+                    <p id="stat-total" class="text-xl font-black text-slate-900 mt-0.5">0</p>
+                </div>
+                <div class="bg-slate-50 p-2 rounded-lg text-slate-600 border border-slate-100"><i data-lucide="milestone" class="w-4 h-4 text-brand-500"></i></div>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl shadow-xs border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] text-slate-500 font-bold tracking-wider uppercase">地権者承諾済</p>
+                    <p id="stat-consent" class="text-xl font-black text-emerald-600 mt-0.5">0</p>
+                </div>
+                <div class="bg-emerald-50/50 p-2 rounded-lg text-emerald-600 border border-emerald-100"><i data-lucide="signature" class="w-4 h-4 text-emerald-600"></i></div>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl shadow-xs border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] text-slate-500 font-bold tracking-wider uppercase">最重要ランクA</p>
+                    <p id="stat-rank-a" class="text-xl font-black text-amber-500 mt-0.5">0</p>
+                </div>
+                <div class="bg-amber-50/50 p-2 rounded-lg text-amber-500 border border-amber-100"><i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i></div>
+            </div>
+            <div class="bg-white p-3.5 rounded-xl shadow-xs border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] text-slate-500 font-bold tracking-wider uppercase">テナント申込獲得</p>
+                    <p id="stat-applied" class="text-xl font-black text-brand-500 mt-0.5">0</p>
+                </div>
+                <div class="bg-brand-50 p-2 rounded-lg text-brand-500 border border-brand-100"><i data-lucide="clipboard-check" class="w-4 h-4 text-brand-500"></i></div>
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 1: DASHBOARD ==================== -->
+        <div id="view-dashboard" class="space-y-4 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <!-- Left Side: Interactive Map (5/12) -->
+                <div class="lg:col-span-5 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200/80 p-4">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                        <h2 class="text-xs font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
+                            <i data-lucide="map" class="w-4 h-4 text-brand-500"></i> エリアプロットマップ
+                        </h2>
+                    </div>
+                    <div id="map" class="w-full"></div>
+                </div>
+
+                <!-- Right Side: Mini List & Filters (7/12) -->
+                <div class="lg:col-span-7 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200/80 p-4">
+                    <!-- Filters Panel -->
+                    <div class="flex flex-col gap-2 mb-3 pb-3 border-b border-slate-100">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xs font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4 text-brand-500"></i> 簡易絞込
+                            </h2>
+                            <span class="text-[11px] font-bold text-slate-400" id="filter-count">表示 0 件</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div class="relative">
+                                <input type="text" id="filter-search" oninput="filterProperties()" placeholder="住所・地権者を検索..." class="w-full pl-8 pr-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                <i data-lucide="search" class="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400"></i>
+                            </div>
+                            <select id="filter-type" onchange="filterProperties()" class="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                <option value="">全ての種別</option>
+                                <option value="土地">土地</option>
+                                <option value="居抜き">居抜き</option>
+                                <option value="借地">借地</option>
+                                <option value="売買">売買</option>
+                                <option value="ビルイン">ビルイン</option>
+                            </select>
+                            <select id="filter-rank" onchange="filterProperties()" class="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                <option value="">全ての重要ランク</option>
+                                <option value="A">ランク A</option>
+                                <option value="B">ランク B</option>
+                                <option value="C">ランク C</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Properties Container -->
+                    <div class="h-[290px] overflow-y-auto custom-scrollbar space-y-2 pr-1" id="properties-list">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW 2: PROPERTY LIST ==================== -->
+        <div id="view-list" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div>
+                    <h2 class="text-xs font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
+                        <i data-lucide="layers" class="w-4 h-4 text-brand-500"></i> 開発推進物件一覧 (1行表示)
+                    </h2>
+                </div>
+                <div class="text-xs font-bold text-slate-400" id="total-list-count">全 0 件</div>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-slate-150">
+                <table class="w-full text-left border-collapse min-w-[650px]">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-xs font-bold text-slate-500 uppercase bg-slate-50">
+                            <th class="py-2.5 px-4 w-16 text-center">ランク</th>
+                            <th class="py-2.5 px-4">物件・計画名</th>
+                            <th class="py-2.5 px-4 w-40 text-right">面積 (㎡ / 坪)</th>
+                            <th class="py-2.5 px-4 w-24">種別</th>
+                            <th class="py-2.5 px-4 w-28">地権者承諾</th>
+                        </tr>
+                    </thead>
+                    <tbody id="properties-table-body" class="divide-y divide-slate-100 text-xs">
+                        <!-- Filled by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW 3: TENANT DATABASE ==================== -->
+        <div id="view-tenant-db" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-2 gap-2">
+                <div>
+                    <h2 class="text-xs font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
+                        <i data-lucide="database" class="w-4 h-4 text-brand-500"></i> 出店想定・希望テナントDB
+                    </h2>
+                    <p class="text-[9px] text-slate-400 mt-0.5">物件自動連動想定テナント、および直接手動追加された登録データベース</p>
+                </div>
+                <button onclick="openNewTenantModal()" class="flex items-center gap-1 px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold rounded-lg transition self-end sm:self-auto">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> テナント手動追加
+                </button>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-slate-150">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-xs font-bold text-slate-500 uppercase bg-slate-50">
+                            <th class="py-2.5 px-4 w-24">データソース</th>
+                            <th class="py-2.5 px-4">テナント名</th>
+                            <th class="py-2.5 px-4 w-40">希望 / 実績エリア</th>
+                            <th class="py-2.5 px-4 w-36 text-right">想定/希望面積 (㎡/坪)</th>
+                            <th class="py-2.5 px-4 w-20 text-center">感触</th>
+                            <th class="py-2.5 px-4 w-28">申込状況</th>
+                            <th class="py-2.5 px-4 w-16 text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tenant-table-body" class="divide-y divide-slate-100 text-xs">
+                        <!-- Filled by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW 4: PROPERTY DETAIL / FORM ==================== -->
+        <div id="view-detail" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4">
+            <!-- Header buttons -->
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="goBackFromDetail()" class="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i> 戻る
+                    </button>
+                    <h3 id="detail-view-title" class="text-xs font-bold text-slate-800 flex items-center gap-1">
+                        物件情報詳細
+                    </h3>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button type="button" id="btn-delete-prop" onclick="triggerDeleteProperty()" class="flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-red-600 text-xs font-bold rounded-lg transition">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 物件削除
+                    </button>
+                    <button type="button" onclick="document.getElementById('property-form').requestSubmit()" class="flex items-center gap-1 px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold rounded-lg shadow-sm transition">
+                        <i data-lucide="check" class="w-4 h-4"></i> 物件を保存
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form Body -->
+            <form id="property-form" onsubmit="handleFormSubmit(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="prop-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                    
+                    <!-- Left Column: Base Specs -->
+                    <div class="md:col-span-8 space-y-4">
+                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <h4 class="text-slate-500 font-extrabold tracking-wider uppercase border-l-2 border-brand-500 pl-1.5">1. 物件基本スペック</h4>
+                            
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div class="sm:col-span-2">
+                                    <label class="block font-bold text-slate-600 mb-1">物件名/開発計画名 <span class="text-rose-500">*</span></label>
+                                    <input type="text" id="prop-name" required placeholder="例: 相模原市南区バイパス土地" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold text-slate-800">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-1">開発ランク <span class="text-rose-500">*</span></label>
+                                    <select id="prop-rank" required class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold text-amber-600">
+                                        <option value="A">ランク A (最優先)</option>
+                                        <option value="B">ランク B (標準)</option>
+                                        <option value="C">ランク C (検討/保留)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="sm:col-span-2">
+                                    <label class="block font-bold text-slate-600 mb-1">物件住所 <span class="text-rose-500">*</span></label>
+                                    <div class="flex gap-1.5">
+                                        <input type="text" id="prop-address" required placeholder="例: 東京都町田市森野1丁目..." class="flex-grow px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                        <button type="button" onclick="triggerGeocode()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1 shrink-0">
+                                            <i data-lucide="search" class="w-3.5 h-3.5"></i> マップ検索
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-1">物件種別 <span class="text-rose-500">*</span></label>
+                                    <select id="prop-type" required class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
+                                        <option value="土地">土地</option>
+                                        <option value="居抜き">居抜き</option>
+                                        <option value="借地">借地</option>
+                                        <option value="売買">売買</option>
+                                        <option value="ビルイン">ビルイン</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-1">面積 (㎡)</label>
+                                    <div class="relative">
+                                        <input type="number" step="0.01" id="prop-area" oninput="calculateTsubo('prop-area', 'prop-tsubo-display')" placeholder="例: 1000" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono font-semibold">
+                                        <span class="absolute right-3 top-1.5 text-slate-400">㎡</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-400 mb-1">換算坪数 (自動計算)</label>
+                                    <div class="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-600 font-mono font-bold" id="prop-tsubo-display">
+                                        0.0 坪
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-1">地番</label>
+                                    <input type="text" id="prop-chiban" placeholder="例: 101番地1" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                </div>
+
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-1">用途地域</label>
+                                    <input type="text" id="prop-zone" placeholder="例: 第一種住居地域" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-1">確認日</label>
+                                    <input type="date" id="prop-confirm-date" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                </div>
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <div>
+                                        <label class="block font-bold text-slate-400 mb-0.5">緯度</label>
+                                        <input type="number" step="0.000001" id="prop-lat" class="w-full px-2 py-1 text-[10px] bg-slate-100 border border-slate-200 rounded">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-400 mb-0.5">経度</label>
+                                        <input type="number" step="0.000001" id="prop-lng" class="w-full px-2 py-1 text-[10px] bg-slate-100 border border-slate-200 rounded">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Visits Section -->
+                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <div class="flex justify-between items-center border-b border-slate-200/60 pb-1.5">
+                                <h4 class="text-slate-500 font-extrabold tracking-wider uppercase border-l-2 border-brand-500 pl-1.5">3. 地権者交渉・面談履歴</h4>
+                                <button type="button" onclick="addVisitRow()" class="flex items-center gap-1 text-[10px] font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100/80 px-2 py-1 rounded transition">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> 交渉履歴を追加
+                                </button>
+                            </div>
+                            <div class="space-y-2" id="visits-container">
+                                <!-- Dynamic rows -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Landowner & Tenants -->
+                    <div class="md:col-span-4 space-y-4">
+                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <h4 class="text-slate-500 font-extrabold tracking-wider uppercase border-l-2 border-brand-500 pl-1.5">2. 地権者・条件</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-1">地権者氏名 (改行で複数)</label>
+                                    <textarea id="prop-landowners" rows="2" placeholder="田中 太郎 (筆頭代表)&#10;鈴木 一郎" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-0.5">抵当権の有無</label>
+                                    <div class="flex items-center gap-4 mt-2">
+                                        <label class="inline-flex items-center font-bold text-slate-700 cursor-pointer">
+                                            <input type="radio" name="prop-mortgage" value="no" checked class="w-4 h-4 text-brand-600 border-slate-300">
+                                            <span class="ml-1.5">設定なし</span>
+                                        </label>
+                                        <label class="inline-flex items-center font-bold text-slate-700 cursor-pointer">
+                                            <input type="radio" name="prop-mortgage" value="yes" class="w-4 h-4 text-brand-600 border-slate-300">
+                                            <span class="ml-1.5 text-rose-600">あり (設定あり)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 gap-3">
+                                    <div>
+                                        <label class="block font-bold text-slate-600 mb-1">地権者承諾状況</label>
+                                        <select id="prop-consent" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
+                                            <option value="未承諾" class="text-rose-500 font-bold">未承諾</option>
+                                            <option value="承諾済" class="text-emerald-600 font-bold">承諾済</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-600 mb-1">主要経済条件交渉案</label>
+                                        <input type="text" id="prop-terms" placeholder="例: 月額賃料 50万円希望" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tenants -->
+                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <div class="flex justify-between items-center border-b border-slate-200/60 pb-1.5">
+                                <h4 class="text-slate-500 font-extrabold tracking-wider uppercase border-l-2 border-brand-500 pl-1.5">4. 出店想定テナント</h4>
+                                <button type="button" onclick="addTenantRow()" class="flex items-center gap-1 text-[10px] font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100/80 px-2 py-1 rounded transition">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> テナント追加
+                                </button>
+                            </div>
+                            <div class="space-y-2.5" id="tenants-container">
+                                <!-- Dynamic rows -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- Modal: Tenant Manual Addition Form -->
+    <div id="tenant-modal" class="hidden fixed inset-0 bg-slate-950/55 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100">
+            <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
+                <h3 class="text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="user-plus" class="w-4 h-4 text-brand-400"></i> テナント手動登録
+                </h3>
+                <button onclick="closeTenantModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="tenant-form" onsubmit="handleTenantSubmit(event)" class="p-5 space-y-4 text-xs">
+                <input type="hidden" id="manual-tenant-id">
+                
+                <div>
+                    <label class="block font-bold text-slate-600 mb-1">想定テナント名 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="m-tenant-name" required placeholder="例: ファミリーマート、スシロー" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">希望/実績エリア <span class="text-rose-500">*</span></label>
+                        <input type="text" id="m-tenant-area" required placeholder="例: 東京都町田市" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">申込ステータス</label>
+                        <select id="m-tenant-app" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+                            <option value="未受領">未受領</option>
+                            <option value="受領">受領済</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">希望/想定面積 (㎡)</label>
+                        <div class="relative">
+                            <input type="number" step="0.1" id="m-tenant-size" oninput="calculateTsubo('m-tenant-size', 'm-tenant-tsubo')" placeholder="例: 150" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono">
+                            <span class="absolute right-3 top-1.5 text-slate-400">㎡</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">希望/想定坪数</label>
+                        <div class="relative">
+                            <input type="number" step="0.1" id="m-tenant-tsubo" oninput="calculateM2('m-tenant-tsubo', 'm-tenant-size')" placeholder="例: 45" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono">
+                            <span class="absolute right-3 top-1.5 text-slate-400">坪</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">テナント感触ランク</label>
+                        <select id="m-tenant-feel" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
+                            <option value="A">A (良好)</option>
+                            <option value="B">B (見込)</option>
+                            <option value="C">C (消極/交渉中)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-100 flex justify-end gap-1.5">
+                    <button type="button" onclick="closeTenantModal()" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition">キャンセル</button>
+                    <button type="submit" class="px-5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg shadow-sm transition">データベースに保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: JSON Backup & Cloud Synchronization Manager -->
+    <div id="export-modal" class="hidden fixed inset-0 bg-slate-950/55 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col">
+            <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
+                <h3 class="text-xs font-bold tracking-wider uppercase flex items-center gap-2">
+                    <i data-lucide="cloud" class="w-4 h-4 text-brand-400"></i> Googleドライブ連携・データバックアップ
+                </h3>
+                <button onclick="closeExportModal()" class="text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4 text-xs leading-relaxed text-slate-600">
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/60">
+                    <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-1">
+                        <i data-lucide="info" class="w-4 h-4 text-brand-500"></i> iPhoneとPCでデータを同期する手順
+                    </h4>
+                    <ol class="list-decimal pl-4 space-y-1 text-slate-600">
+                        <li>この画面の「<strong>バックアップを保存</strong>」をタップし、JSONファイルを保存。</li>
+                        <li>そのファイルを<strong>Googleドライブ</strong>の特定フォルダへアップロード。</li>
+                        <li>別端末で本アプリを開き、「<strong>Googleドライブから復元</strong>」から該当ファイルを選んで読み込みます。</li>
+                    </ol>
+                </div>
+
+                <textarea id="export-data-json" readonly rows="5" class="w-full p-2 font-mono text-[10px] bg-slate-950 text-emerald-400 rounded-lg border border-slate-800 focus:outline-none"></textarea>
+                
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-2 border-t border-slate-100">
+                    <!-- Import/Restore -->
+                    <button onclick="triggerImport()" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition text-xs">
+                        <i data-lucide="upload-cloud" class="w-4 h-4 text-brand-600"></i> Googleドライブから復元
+                    </button>
+                    <!-- Copy & Download Export -->
+                    <div class="flex gap-1.5">
+                        <button onclick="copyExportJson()" class="flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition text-xs">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> テキストコピー
+                        </button>
+                        <button onclick="downloadBackupFile()" class="flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg shadow-sm transition text-xs">
+                            <i data-lucide="download" class="w-4 h-4"></i> バックアップを保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Beautiful Confirm Modal (No more browser native alerts!) -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-slate-950/55 backdrop-blur-xs flex items-center justify-center p-4 z-[100] animate-in fade-in duration-100">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden p-5 space-y-4 border border-slate-100 animate-in zoom-in-95 duration-100">
+            <div class="flex items-center gap-2.5 text-amber-500">
+                <i data-lucide="alert-triangle" class="w-5 h-5 shrink-0"></i>
+                <h4 class="font-extrabold text-sm text-slate-800" id="confirm-title">警告</h4>
+            </div>
+            <p class="text-xs text-slate-500 leading-relaxed font-semibold" id="confirm-message">本当に実行しますか？</p>
+            <div class="flex justify-end gap-1.5 text-xs font-bold pt-2 border-t border-slate-50">
+                <button id="confirm-cancel-btn" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
+                    キャンセル
+                </button>
+                <button id="confirm-ok-btn" class="px-4 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition shadow-sm">
+                    実行する
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Alerts -->
+    <div id="toast" class="hidden fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50">
+        <span id="toast-icon"></span>
+        <span id="toast-message" class="text-xs font-bold">メッセージ</span>
+    </div>
+
+    <script>
+        // Default Mock Datasets
+        const defaultProperties = [
+            {
+                id: "prop-1",
+                name: "厚木市岡田バイパス沿ロードサイド土地",
+                type: "土地",
+                address: "神奈川県厚木市岡田3丁目10-5",
+                chiban: "岡田字大六天543番1",
+                area: 1250.8,
+                zone: "準工業地域",
+                landowners: ["鈴木 健二 (親族代表・居住地横浜市)", "鈴木 芳子 (共有持分者)"],
+                mortgage: true,
+                confirmDate: "2026-04-10",
+                consent: "未承諾",
+                terms: "定期借地20年、月額80万円（坪2,100円想定）、保証金12ヶ月",
+                rank: "A",
+                visits: [
+                    { date: "2026-04-12", detail: "初回挨拶、登記簿謄本をもとにアプローチ。実家の相続関係整理中とのこと。" },
+                    { date: "2026-05-18", detail: "再訪問、事業定借の概要を提案。抵当権抹消の目処について確認打診中。" }
+                ],
+                tenants: [
+                    { name: "和食レストランA", feel: "A", application: "未受領" },
+                    { name: "ドラッグストアB", feel: "B", application: "未受領" }
+                ],
+                lat: 35.424424,
+                lng: 139.362142,
+                createdAt: "2026-04-10T09:00:00.000Z"
+            },
+            {
+                id: "prop-2",
+                name: "八王子駅南口テナントビルインビル計画",
+                type: "ビルイン",
+                address: "東京都八王子市子安町1丁目2-3",
+                chiban: "子安町12番3",
+                area: 210.0,
+                zone: "商業地域",
+                landowners: ["株式会社八王子不動産ビル開発"],
+                mortgage: false,
+                confirmDate: "2026-05-01",
+                consent: "承諾済",
+                terms: "普通賃貸借、月額110万円、保証金10ヶ月",
+                rank: "B",
+                visits: [
+                    { date: "2026-05-05", detail: "ビル内見及び経済条件交渉。申込書を頂ければ賃料交渉も可能との感触。" }
+                ],
+                tenants: [
+                    { name: "フィットネスジムC", feel: "A", application: "受領" }
+                ],
+                lat: 35.653421,
+                lng: 139.339243,
+                createdAt: "2026-05-01T11:30:00.000Z"
+            },
+            {
+                id: "prop-3",
+                name: "平塚市河内バイパス沿い居抜き店舗",
+                type: "居抜き",
+                address: "神奈川県平塚市河内350-1",
+                chiban: "河内字上原350番",
+                area: 850.5,
+                zone: "ロードサイド商業",
+                landowners: ["高橋 義雄 (地元地主)"],
+                mortgage: false,
+                confirmDate: "2026-03-25",
+                consent: "承諾済",
+                terms: "定期借地残存12年、現行賃料月額60万円引き継ぎ",
+                rank: "C",
+                visits: [
+                    { date: "2026-03-28", detail: "前テナント撤退時期の確認および原状回復義務免除について地権者に挨拶。" }
+                ],
+                tenants: [],
+                lat: 35.334125,
+                lng: 139.313412,
+                createdAt: "2026-03-25T15:20:00.000Z"
+            }
+        ];
+
+        // Default Tenants Database
+        const defaultManualTenants = [
+            {
+                id: "manual-ten-1",
+                name: "回転寿司チェーンS",
+                areaName: "神奈川県厚木市、伊勢原市",
+                sizeM2: 990.0,
+                sizeTsubo: 300.0,
+                feel: "A",
+                application: "未受領",
+                isManual: true
+            },
+            {
+                id: "manual-ten-2",
+                name: "24hコンビニK",
+                areaName: "東京都八王子市周辺",
+                sizeM2: 198.3,
+                sizeTsubo: 60.0,
+                feel: "B",
+                application: "未受領",
+                isManual: true
+            }
+        ];
+
+        // Central States
+        let properties = [];
+        let manualTenants = [];
+        let tenantDatabase = [];
+
+        let map;
+        let markers = {};
+        let currentView = 'dashboard';
+        let previousView = 'dashboard';
+        
+        // Custom Confirm callback tracker
+        let customConfirmCallback = null;
+
+        // Initialize App
+        window.onload = function() {
+            // Load DB
+            const storedProps = localStorage.getItem('s_dev_properties_v2');
+            const storedManualTenants = localStorage.getItem('s_dev_manual_tenants_v2');
+
+            if (storedProps) {
+                try { properties = JSON.parse(storedProps); } catch(e) { properties = [...defaultProperties]; }
+            } else {
+                properties = [...defaultProperties];
+                localStorage.setItem('s_dev_properties_v2', JSON.stringify(properties));
+            }
+
+            if (storedManualTenants) {
+                try { manualTenants = JSON.parse(storedManualTenants); } catch(e) { manualTenants = [...defaultManualTenants]; }
+            } else {
+                manualTenants = [...defaultManualTenants];
+                localStorage.setItem('s_dev_manual_tenants_v2', JSON.stringify(manualTenants));
+            }
+
+            initMap();
+            rebuildTenantDatabase();
+            switchView('dashboard');
+            lucide.createIcons();
+            setupConfirmEventHandlers();
+        };
+
+        // Custom Confirm Handlers Setup
+        function setupConfirmEventHandlers() {
+            document.getElementById('confirm-cancel-btn').onclick = function() {
+                document.getElementById('confirm-modal').classList.add('hidden');
+                customConfirmCallback = null;
+            };
+            document.getElementById('confirm-ok-btn').onclick = function() {
+                document.getElementById('confirm-modal').classList.add('hidden');
+                if (customConfirmCallback) {
+                    customConfirmCallback();
+                }
+                customConfirmCallback = null;
+            };
+        }
+
+        // Show Custom Confirm modal helper
+        function callConfirm(title, message, yesCallback) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            customConfirmCallback = yesCallback;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // Initialize Map
+        function initMap() {
+            map = L.map('map').setView([35.5, 139.4], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            window.addEventListener('resize', () => {
+                if (currentView === 'dashboard') {
+                    map.invalidateSize();
+                }
+            });
+        }
+
+        // View Router
+        function switchView(viewName) {
+            if (currentView !== 'detail') {
+                previousView = currentView;
+            }
+            currentView = viewName;
+
+            const sections = {
+                'dashboard': document.getElementById('view-dashboard'),
+                'list': document.getElementById('view-list'),
+                'tenant-db': document.getElementById('view-tenant-db'),
+                'detail': document.getElementById('view-detail')
+            };
+
+            const statsWidget = document.getElementById('stats-widget');
+
+            Object.values(sections).forEach(sec => sec.classList.add('hidden'));
+
+            const navIds = ['nav-dashboard', 'nav-list', 'nav-tenant-db'];
+            navIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === `nav-${viewName}`) {
+                    el.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-brand-400";
+                } else {
+                    el.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white hover:bg-slate-800/50";
+                }
+            });
+
+            if (viewName === 'dashboard') {
+                sections['dashboard'].classList.remove('hidden');
+                statsWidget.classList.remove('hidden');
+                setTimeout(() => { map.invalidateSize(); }, 80);
+                filterProperties();
+            } else if (viewName === 'list') {
+                sections['list'].classList.remove('hidden');
+                statsWidget.classList.remove('hidden');
+                renderList();
+            } else if (viewName === 'tenant-db') {
+                sections['tenant-db'].classList.remove('hidden');
+                statsWidget.classList.remove('hidden');
+                renderTenantDatabase();
+            } else if (viewName === 'detail') {
+                sections['detail'].classList.remove('hidden');
+                statsWidget.classList.add('hidden');
+            }
+
+            renderStats();
+            lucide.createIcons();
+        }
+
+        // Global Stats Summary
+        function renderStats() {
+            const total = properties.length;
+            const consent = properties.filter(p => p.consent === '承諾済').length;
+            const rankA = properties.filter(p => p.rank === 'A').length;
+            
+            let appliedCount = 0;
+            properties.forEach(p => {
+                if (p.tenants) {
+                    p.tenants.forEach(t => { if (t.application === '受領') appliedCount++; });
+                }
+            });
+            manualTenants.forEach(mt => {
+                if (mt.application === '受領') appliedCount++;
+            });
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-consent').innerText = consent;
+            document.getElementById('stat-rank-a').innerText = rankA;
+            document.getElementById('stat-applied').innerText = appliedCount;
+        }
+
+        // Local Storage Sync
+        function saveData() {
+            localStorage.setItem('s_dev_properties_v2', JSON.stringify(properties));
+            localStorage.setItem('s_dev_manual_tenants_v2', JSON.stringify(manualTenants));
+            rebuildTenantDatabase();
+        }
+
+        function extractArea(address) {
+            if (!address) return "未特定エリア";
+            const match = address.match(/^.{2,5}?[都道府県](?:[^市区町村]+?[市区町村])?/);
+            return match ? match[0] : address.substring(0, 11);
+        }
+
+        function rebuildTenantDatabase() {
+            tenantDatabase = [];
+
+            properties.forEach(p => {
+                if (p.tenants && p.tenants.length > 0) {
+                    p.tenants.forEach((t, index) => {
+                        tenantDatabase.push({
+                            id: `auto-${p.id}-${index}`,
+                            name: t.name,
+                            areaName: extractArea(p.address),
+                            sizeM2: p.area || 0,
+                            sizeTsubo: p.area ? parseFloat((p.area * 0.3025).toFixed(1)) : 0,
+                            feel: t.feel,
+                            application: t.application,
+                            isManual: false,
+                            sourcePropertyId: p.id,
+                            sourcePropertyName: p.name
+                        });
+                    });
+                }
+            });
+
+            manualTenants.forEach(mt => {
+                tenantDatabase.push({
+                    id: mt.id,
+                    name: mt.name,
+                    areaName: mt.areaName,
+                    sizeM2: mt.sizeM2 || 0,
+                    sizeTsubo: mt.sizeTsubo || (mt.sizeM2 ? parseFloat((mt.sizeM2 * 0.3025).toFixed(1)) : 0),
+                    feel: mt.feel,
+                    application: mt.application,
+                    isManual: true,
+                    sourcePropertyId: null,
+                    sourcePropertyName: null
+                });
+            });
+        }
+
+        // Conversion utilities
+        function calculateTsubo(m2InputId, tsuboTargetId) {
+            const m2Val = parseFloat(document.getElementById(m2InputId).value) || 0;
+            const tsuboVal = (m2Val * 0.3025).toFixed(1);
+            
+            const target = document.getElementById(tsuboTargetId);
+            if (target.tagName === 'INPUT') {
+                target.value = m2Val > 0 ? tsuboVal : "";
+            } else {
+                target.innerText = m2Val > 0 ? `${parseFloat(tsuboVal).toLocaleString()} 坪` : "0.0 坪";
+            }
+        }
+
+        function calculateM2(tsuboInputId, m2TargetId) {
+            const tsuboVal = parseFloat(document.getElementById(tsuboInputId).value) || 0;
+            const m2Val = (tsuboVal / 0.3025).toFixed(1);
+
+            const target = document.getElementById(m2TargetId);
+            if (target.tagName === 'INPUT') {
+                target.value = tsuboVal > 0 ? m2Val : "";
+            }
+        }
+
+        // Map Pins Render
+        function updateMapMarkers(filteredProps) {
+            for (let id in markers) {
+                map.removeLayer(markers[id]);
+            }
+            markers = {};
+            const bounds = [];
+
+            filteredProps.forEach(p => {
+                if (p.lat && p.lng) {
+                    const color = p.rank === 'A' ? '#4f46e5' : p.rank === 'B' ? '#f59e0b' : '#64748b';
+                    
+                    const customIcon = L.divIcon({
+                        html: `
+                            <div class="relative flex items-center justify-center">
+                                <span class="animate-pulse absolute inline-flex h-6 w-6 rounded-full opacity-30" style="background-color: ${color}"></span>
+                                <div class="relative rounded-full text-white flex items-center justify-center shadow-md border-2 border-white w-7 h-7 text-[10px] font-black" style="background-color: ${color}">
+                                    ${p.rank}
+                                </div>
+                            </div>
+                        `,
+                        className: 'custom-div-icon',
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
+                    });
+
+                    const marker = L.marker([p.lat, p.lng], { icon: customIcon }).addTo(map);
+                    
+                    const popupContent = `
+                        <div class="p-1.5 font-sans text-xs max-w-[200px]">
+                            <div class="flex items-center gap-1 mb-1">
+                                <span class="px-1 text-[9px] font-bold bg-slate-900 text-white rounded">${p.rank}ランク</span>
+                                <span class="px-1 text-[9px] font-bold ${p.consent === '承諾済' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} rounded">${p.consent}</span>
+                            </div>
+                            <h4 class="font-bold text-slate-900 mb-0.5 leading-snug">${p.name}</h4>
+                            <p class="text-[10px] text-slate-500 mb-2 truncate">${p.address}</p>
+                            <button onclick="openEditPropertyView('${p.id}')" class="w-full text-center py-1 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded text-[10px] transition">
+                                詳細・カルテを表示
+                            </button>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                    markers[p.id] = marker;
+                    bounds.push([p.lat, p.lng]);
+                }
+            });
+
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+            }
+        }
+
+        // Filter Logic
+        function filterProperties() {
+            const searchVal = document.getElementById('filter-search').value.toLowerCase();
+            const typeVal = document.getElementById('filter-type').value;
+            const rankVal = document.getElementById('filter-rank').value;
+
+            const filtered = properties.filter(p => {
+                const landownersStr = (p.landowners || []).join(' ').toLowerCase();
+                const matchesSearch = !searchVal || 
+                                     p.name.toLowerCase().includes(searchVal) || 
+                                     p.address.toLowerCase().includes(searchVal) || 
+                                     landownersStr.includes(searchVal);
+                
+                const matchesType = !typeVal || p.type === typeVal;
+                const matchesRank = !rankVal || p.rank === rankVal;
+
+                return matchesSearch && matchesType && matchesRank;
+            });
+
+            document.getElementById('filter-count').innerText = `表示 ${filtered.length} 件`;
+
+            renderDashboardMiniList(filtered);
+            updateMapMarkers(filtered);
+        }
+
+        // Mini Card Renderer
+        function renderDashboardMiniList(props) {
+            const container = document.getElementById('properties-list');
+            container.innerHTML = '';
+
+            if (props.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-16 text-slate-400">
+                        <i data-lucide="inbox" class="w-10 h-10 mb-2 stroke-1"></i>
+                        <p class="text-xs">条件に合致する物件が見当たりません</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            props.forEach(p => {
+                const areaTsubo = p.area ? (p.area * 0.3025).toFixed(1) : '0.0';
+                const rankColor = p.rank === 'A' ? 'bg-amber-50 border-amber-200 text-amber-800' : p.rank === 'B' ? 'bg-brand-50 border-brand-100 text-brand-800' : 'bg-slate-100 border-slate-200 text-slate-600';
+                const consentStyle = p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100';
+
+                const html = `
+                    <div onclick="openEditPropertyView('${p.id}')" class="bg-white hover:bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 transition cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs hover:shadow-xs">
+                        <div class="space-y-1.5 flex-grow min-w-0">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-[9px] font-extrabold border px-1.5 py-0.5 rounded ${rankColor}">ランク ${p.rank}</span>
+                                <span class="text-[9px] font-extrabold border px-1.5 py-0.5 rounded ${consentStyle}">${p.consent}</span>
+                                <span class="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">${p.type}</span>
+                                <h3 class="text-xs font-bold text-slate-800 truncate">${p.name}</h3>
+                            </div>
+                            <div class="text-[11px] text-slate-500 flex items-center gap-3">
+                                <span class="font-mono"><strong class="text-slate-700 font-bold">${p.area ? p.area.toLocaleString() : '-'}</strong> ㎡ (${areaTsubo} 坪)</span>
+                                <span class="truncate text-slate-400 flex items-center gap-0.5"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${extractArea(p.address)}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 self-end sm:self-auto">
+                            <span class="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">推進詳細 <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+            lucide.createIcons();
+        }
+
+        // Main Property List Renderer
+        function renderList() {
+            const tableBody = document.getElementById('properties-table-body');
+            document.getElementById('total-list-count').innerText = `全 ${properties.length} 件`;
+
+            tableBody.innerHTML = '';
+
+            if (properties.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-12 text-center text-slate-400">
+                            <i data-lucide="folder-search" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
+                            <p class="text-xs">登録されている案件情報がありません。</p>
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            properties.forEach(p => {
+                const areaTsubo = p.area ? (p.area * 0.3025).toFixed(1) : '0.0';
+                
+                let rankBadge = '';
+                if (p.rank === 'A') {
+                    rankBadge = `<span class="inline-flex items-center justify-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-extrabold w-6 h-6 rounded-md">A</span>`;
+                } else if (p.rank === 'B') {
+                    rankBadge = `<span class="inline-flex items-center justify-center bg-brand-50 text-brand-700 border border-brand-100 text-[10px] font-extrabold w-6 h-6 rounded-md">B</span>`;
+                } else {
+                    rankBadge = `<span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-extrabold w-6 h-6 rounded-md">C</span>`;
+                }
+
+                const rowHtml = `
+                    <tr onclick="openEditPropertyView('${p.id}')" class="hover:bg-slate-50 cursor-pointer transition">
+                        <td class="py-3 px-4 text-center">
+                            ${rankBadge}
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-bold text-slate-800 leading-normal hover:text-brand-600 transition">${p.name}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[380px]">${p.address}</div>
+                        </td>
+                        <td class="py-3 px-4 text-right font-mono text-slate-700">
+                            <span class="font-bold">${p.area ? p.area.toLocaleString() : '-'}</span> <span class="text-slate-400 text-[10px]">㎡</span>
+                            <div class="text-[10px] text-slate-400 font-medium">${areaTsubo} 坪</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="inline-block text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/40">${p.type}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full ${p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}">
+                                ${p.consent}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', rowHtml);
+            });
+            lucide.createIcons();
+        }
+
+        // Tenant Database Renderer
+        function renderTenantDatabase() {
+            rebuildTenantDatabase();
+            const tableBody = document.getElementById('tenant-table-body');
+            tableBody.innerHTML = '';
+
+            if (tenantDatabase.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-400">
+                            <i data-lucide="database" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
+                            <p class="text-xs">想定・希望テナントが登録されていません。</p>
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            tenantDatabase.forEach(t => {
+                const feelColor = t.feel === 'A' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : t.feel === 'B' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200';
+                const statusBadge = t.application === '受領' ? 'bg-brand-500 text-white font-extrabold shadow-2xs' : 'bg-slate-100 text-slate-500 border-slate-200';
+                
+                const sourceBadge = t.isManual 
+                    ? `<span class="inline-block text-[9px] font-black tracking-wider uppercase bg-slate-900 text-white px-1.5 py-0.5 rounded-md">直接登録</span>`
+                    : `<span class="inline-block text-[9px] font-extrabold tracking-wider bg-brand-50 text-brand-700 border border-brand-200 px-1.5 py-0.5 rounded-md">物件連動</span>`;
+
+                const areaDisplay = t.isManual 
+                    ? t.areaName 
+                    : `<span class="flex items-center gap-0.5" title="${t.areaName}"><i data-lucide="map-pin" class="w-3 h-3 text-brand-500"></i> ${t.areaName}</span>`;
+
+                const actionButton = t.isManual 
+                    ? `
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="openEditTenantModal('${t.id}')" class="text-slate-400 hover:text-slate-900 p-1 rounded" title="編集"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="triggerDeleteManualTenant('${t.id}')" class="text-rose-400 hover:text-rose-600 p-1 rounded" title="削除"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    ` : `
+                        <button onclick="openEditPropertyView('${t.sourcePropertyId}')" class="text-brand-500 hover:text-brand-700 hover:bg-brand-50 px-2 py-1 rounded border border-brand-100 flex items-center gap-0.5" title="物件カルテを開く">
+                            物件 <i data-lucide="external-link" class="w-3 h-3"></i>
+                        </button>
+                    `;
+
+                const rowHtml = `
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="py-2.5 px-4 font-semibold text-[10px]">
+                            ${sourceBadge}
+                        </td>
+                        <td class="py-2.5 px-4">
+                            <div class="font-bold text-slate-800 leading-normal">${t.name}</div>
+                            ${!t.isManual ? `<div class="text-[9px] text-slate-400 mt-0.5 max-w-[200px] truncate">連動: ${t.sourcePropertyName}</div>` : ''}
+                        </td>
+                        <td class="py-2.5 px-4 font-semibold text-slate-600">
+                            ${areaDisplay}
+                        </td>
+                        <td class="py-2.5 px-4 text-right font-mono text-slate-700">
+                            <span class="font-bold">${t.sizeM2 ? t.sizeM2.toLocaleString() : '-'}</span> <span class="text-slate-400 text-[10px]">㎡</span>
+                            <div class="text-[10px] text-slate-400 font-medium">${t.sizeTsubo ? t.sizeTsubo.toLocaleString() : '0.0'} 坪</div>
+                        </td>
+                        <td class="py-2.5 px-4 text-center">
+                            <span class="inline-block text-[10px] font-bold border px-1.5 rounded ${feelColor}">${t.feel}</span>
+                        </td>
+                        <td class="py-2.5 px-4">
+                            <span class="inline-block text-[10px] font-semibold border px-2 py-0.5 rounded ${statusBadge}">
+                                ${t.application === '受領' ? '申込受領' : '未受領'}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-4 text-center">
+                            ${actionButton}
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', rowHtml);
+            });
+            lucide.createIcons();
+        }
+
+        // Visits Row Handling
+        function addVisitRow(date = '', detail = '') {
+            const container = document.getElementById('visits-container');
+            const rowId = `visit-row-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+            
+            const visitHtml = `
+                <div id="${rowId}" class="flex flex-col sm:flex-row items-start gap-2 bg-white p-3 rounded-lg border border-slate-200">
+                    <input type="date" value="${date}" class="visit-date w-full sm:w-36 px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500" required>
+                    <textarea placeholder="交渉内容をご記入ください。" class="visit-detail flex-grow w-full px-2.5 py-1 bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" rows="1" required>${detail}</textarea>
+                    <button type="button" onclick="removeVisitRow('${rowId}')" class="text-rose-500 hover:text-rose-700 hover:bg-slate-100 p-1.5 rounded transition shrink-0 self-end sm:self-center">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', visitHtml);
+            lucide.createIcons();
+        }
+
+        function removeVisitRow(rowId) {
+            document.getElementById(rowId)?.remove();
+        }
+
+        // Tenants Inside Property Detail Row Handling
+        function addTenantRow(name = '', feel = 'B', application = '未受領') {
+            const container = document.getElementById('tenants-container');
+            const rowId = `tenant-row-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+
+            const tenantHtml = `
+                <div id="${rowId}" class="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                    <div class="flex gap-1">
+                        <input type="text" value="${name}" placeholder="想定テナント名 (例: スーパー、ドラッグ)" class="tenant-name flex-grow px-2 py-1 bg-slate-50 border border-slate-200 rounded font-bold focus:outline-none focus:ring-1 focus:ring-brand-500" required>
+                        <button type="button" onclick="removeTenantRow('${rowId}')" class="text-rose-400 hover:text-rose-600 p-1 hover:bg-slate-100 rounded transition shrink-0">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="flex gap-2 justify-between">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[9px] text-slate-400 font-bold">感触:</span>
+                            <select class="tenant-feel px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded focus:outline-none text-[10px] font-bold">
+                                <option value="A" ${feel === 'A' ? 'selected' : ''}>A (良好)</option>
+                                <option value="B" ${feel === 'B' ? 'selected' : ''}>B (見込)</option>
+                                <option value="C" ${feel === 'C' ? 'selected' : ''}>C (交渉中)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[9px] text-slate-400 font-bold">申込:</span>
+                            <select class="tenant-app px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded focus:outline-none text-[10px]">
+                                <option value="未受領" ${application === '未受領' ? 'selected' : ''}>未受領</option>
+                                <option value="受領" ${application === '受領' ? 'selected' : ''}>受領済</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', tenantHtml);
+            lucide.createIcons();
+        }
+
+        function removeTenantRow(rowId) {
+            document.getElementById(rowId)?.remove();
+        }
+
+        function goBackFromDetail() {
+            switchView(previousView);
+        }
+
+        function openNewPropertyView() {
+            document.getElementById('detail-view-title').innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5 text-emerald-500"></i> 物件開発推進情報の新規作成`;
+            document.getElementById('property-form').reset();
+            document.getElementById('prop-id').value = "";
+            document.getElementById('visits-container').innerHTML = "";
+            document.getElementById('tenants-container').innerHTML = "";
+            document.getElementById('prop-tsubo-display').innerText = "0.0 坪";
+            
+            document.getElementById('prop-confirm-date').value = new Date().toISOString().substring(0, 10);
+            document.getElementById('btn-delete-prop').classList.add('hidden');
+
+            addVisitRow(new Date().toISOString().substring(0, 10), "物件基本情報を確認、推進プロセスを開始。");
+            addTenantRow("", "B", "未受領");
+
+            switchView('detail');
+        }
+
+        function openEditPropertyView(id) {
+            const p = properties.find(item => item.id === id);
+            if (!p) return;
+
+            document.getElementById('detail-view-title').innerHTML = `<i data-lucide="folder-kanban" class="w-4.5 h-4.5 text-brand-500"></i> 開発カルテ: <span class="text-brand-700 ml-1 font-extrabold">${p.name}</span>`;
+            document.getElementById('prop-id').value = p.id;
+            document.getElementById('prop-name').value = p.name;
+            document.getElementById('prop-type').value = p.type;
+            document.getElementById('prop-rank').value = p.rank;
+            document.getElementById('prop-address').value = p.address;
+            document.getElementById('prop-chiban').value = p.chiban || '';
+            document.getElementById('prop-area').value = p.area || '';
+            
+            calculateTsubo('prop-area', 'prop-tsubo-display');
+
+            document.getElementById('prop-zone').value = p.zone || '';
+            document.getElementById('prop-confirm-date').value = p.confirmDate || '';
+            document.getElementById('prop-lat').value = p.lat || '';
+            document.getElementById('prop-lng').value = p.lng || '';
+            
+            document.getElementById('prop-landowners').value = (p.landowners || []).join('\n');
+            
+            const mortgageRadios = document.getElementsByName('prop-mortgage');
+            mortgageRadios.forEach(radio => {
+                if (radio.value === 'yes' && p.mortgage) radio.checked = true;
+                if (radio.value === 'no' && !p.mortgage) radio.checked = true;
+            });
+
+            document.getElementById('prop-consent').value = p.consent || '未承諾';
+            document.getElementById('prop-terms').value = p.terms || '';
+
+            const visitsContainer = document.getElementById('visits-container');
+            visitsContainer.innerHTML = "";
+            if (p.visits && p.visits.length > 0) {
+                p.visits.forEach(v => addVisitRow(v.date, v.detail));
+            } else {
+                addVisitRow(new Date().toISOString().substring(0, 10), "");
+            }
+
+            const tenantsContainer = document.getElementById('tenants-container');
+            tenantsContainer.innerHTML = "";
+            if (p.tenants && p.tenants.length > 0) {
+                p.tenants.forEach(t => addTenantRow(t.name, t.feel, t.application));
+            } else {
+                addTenantRow("", "B", "未受領");
+            }
+
+            document.getElementById('btn-delete-prop').classList.remove('hidden');
+            
+            switchView('detail');
+        }
+
+        async function triggerGeocode() {
+            const address = document.getElementById('prop-address').value.trim();
+            if (!address) {
+                showToast("住所を入力してください。", "warning");
+                return;
+            }
+
+            showToast("住所から緯度経度を特定中...", "info");
+
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+                if (!response.ok) throw new Error("API error");
+                
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const result = data[0];
+                    document.getElementById('prop-lat').value = parseFloat(result.lat).toFixed(6);
+                    document.getElementById('prop-lng').value = parseFloat(result.lon).toFixed(6);
+                    showToast("ピンのプロット位置を登録しました！", "success");
+                } else {
+                    showToast("該当する位置情報が見つかりません。経緯度を微調整してください。", "warning");
+                }
+            } catch (err) {
+                showToast("マップ特定中にエラーが発生しました。", "danger");
+            }
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('prop-id').value;
+            const name = document.getElementById('prop-name').value.trim();
+            const type = document.getElementById('prop-type').value;
+            const rank = document.getElementById('prop-rank').value;
+            const address = document.getElementById('prop-address').value.trim();
+            const chiban = document.getElementById('prop-chiban').value.trim();
+            const area = parseFloat(document.getElementById('prop-area').value) || null;
+            const zone = document.getElementById('prop-zone').value.trim();
+            const confirmDate = document.getElementById('prop-confirm-date').value;
+            
+            const latVal = document.getElementById('prop-lat').value;
+            const lngVal = document.getElementById('prop-lng').value;
+            const lat = latVal ? parseFloat(latVal) : null;
+            const lng = lngVal ? parseFloat(lngVal) : null;
+
+            const landownersVal = document.getElementById('prop-landowners').value;
+            const landowners = landownersVal.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            const mortgageRadios = document.getElementsByName('prop-mortgage');
+            let mortgage = false;
+            mortgageRadios.forEach(radio => {
+                if (radio.checked && radio.value === 'yes') mortgage = true;
+            });
+
+            const consent = document.getElementById('prop-consent').value;
+            const terms = document.getElementById('prop-terms').value.trim();
+
+            const visitElements = document.getElementById('visits-container').children;
+            const visits = [];
+            for (let el of visitElements) {
+                const date = el.querySelector('.visit-date').value;
+                const detail = el.querySelector('.visit-detail').value.trim();
+                if (date && detail) {
+                    visits.push({ date, detail });
+                }
+            }
+            visits.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            const tenantElements = document.getElementById('tenants-container').children;
+            const tenants = [];
+            for (let el of tenantElements) {
+                const tName = el.querySelector('.tenant-name').value.trim();
+                const feel = el.querySelector('.tenant-feel').value;
+                const application = el.querySelector('.tenant-app').value;
+                if (tName) {
+                    tenants.push({ name: tName, feel, application });
+                }
+            }
+
+            if (!id) {
+                const newId = `prop-${Date.now()}`;
+                const newProp = {
+                    id: newId,
+                    name, type, rank, address, chiban, area, zone, confirmDate,
+                    landowners, mortgage, consent, terms, visits, tenants, lat, lng,
+                    createdAt: new Date().toISOString()
+                };
+                properties.push(newProp);
+                showToast("物件推進カルテを新規に立ち上げました。", "success");
+            } else {
+                const idx = properties.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    properties[idx] = {
+                        ...properties[idx],
+                        name, type, rank, address, chiban, area, zone, confirmDate,
+                        landowners, mortgage, consent, terms, visits, tenants, lat, lng
+                    };
+                    showToast("物件推進データおよびテナントDBを更新しました。", "success");
+                }
+            }
+
+            saveData();
+            switchView(previousView);
+        }
+
+        // Trigger safe custom confirm modal for Property deletion
+        function triggerDeleteProperty() {
+            const id = document.getElementById('prop-id').value;
+            if (!id) return;
+
+            const p = properties.find(item => item.id === id);
+            if (!p) return;
+
+            callConfirm(
+                "物件推進計画の削除", 
+                `「${p.name}」に関する地権者情報・面談履歴・想定テナント連動データを含む、データベース上のすべてのレコードが完全に抹消されます。本当に削除してよろしいですか？`, 
+                function() {
+                    properties = properties.filter(item => item.id !== id);
+                    saveData();
+                    showToast("物件交渉推進データを完全に削除しました。", "warning");
+                    switchView(previousView);
+                }
+            );
+        }
+
+        // Manual Tenant DB Form Handling
+        function openNewTenantModal() {
+            document.getElementById('tenant-form').reset();
+            document.getElementById('manual-tenant-id').value = "";
+            document.getElementById('tenant-modal').classList.remove('hidden');
+        }
+
+        function openEditTenantModal(tenantId) {
+            const t = manualTenants.find(item => item.id === tenantId);
+            if (!t) return;
+
+            document.getElementById('manual-tenant-id').value = t.id;
+            document.getElementById('m-tenant-name').value = t.name;
+            document.getElementById('m-tenant-area').value = t.areaName;
+            document.getElementById('m-tenant-size').value = t.sizeM2 || "";
+            document.getElementById('m-tenant-tsubo').value = t.sizeTsubo || "";
+            document.getElementById('m-tenant-feel').value = t.feel || "B";
+            document.getElementById('m-tenant-app').value = t.application || "未受領";
+
+            document.getElementById('tenant-modal').classList.remove('hidden');
+        }
+
+        function closeTenantModal() {
+            document.getElementById('tenant-modal').classList.add('hidden');
+        }
+
+        function handleTenantSubmit(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('manual-tenant-id').value;
+            const name = document.getElementById('m-tenant-name').value.trim();
+            const areaName = document.getElementById('m-tenant-area').value.trim();
+            const sizeM2 = parseFloat(document.getElementById('m-tenant-size').value) || null;
+            const sizeTsubo = parseFloat(document.getElementById('m-tenant-tsubo').value) || null;
+            const feel = document.getElementById('m-tenant-feel').value;
+            const application = document.getElementById('m-tenant-app').value;
+
+            if (!id) {
+                const newT = {
+                    id: `manual-ten-${Date.now()}`,
+                    name, areaName, sizeM2, sizeTsubo, feel, application,
+                    isManual: true
+                };
+                manualTenants.push(newT);
+                showToast("希望テナント情報をデータベースへ手動登録しました。", "success");
+            } else {
+                const idx = manualTenants.findIndex(item => item.id === id);
+                if (idx !== -1) {
+                    manualTenants[idx] = {
+                        ...manualTenants[idx],
+                        name, areaName, sizeM2, sizeTsubo, feel, application
+                    };
+                    showToast("テナントデータベースの情報を更新しました。", "success");
+                }
+            }
+
+            saveData();
+            renderTenantDatabase();
+            closeTenantModal();
+        }
+
+        // Trigger safe custom confirm modal for Manual Tenant deletion
+        function triggerDeleteManualTenant(tenantId) {
+            const t = manualTenants.find(item => item.id === tenantId);
+            if (!t) return;
+
+            callConfirm(
+                "登録テナントの削除", 
+                `直接手動登録された「${t.name}」の希望要件レコードをテナントDBから永久に削除します。よろしいですか？`, 
+                function() {
+                    manualTenants = manualTenants.filter(item => item.id !== tenantId);
+                    saveData();
+                    renderTenantDatabase();
+                    showToast("データベースから該当テナントを削除しました。", "warning");
+                }
+            );
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msgEl = document.getElementById('toast-message');
+
+            msgEl.innerText = message;
+            
+            let iconMarkup = '<i data-lucide="info" class="w-4 h-4 text-sky-400"></i>';
+            if (type === 'success') {
+                iconMarkup = '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>';
+                toast.className = "fixed bottom-5 right-5 bg-slate-900 text-slate-100 border border-emerald-800 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50 transition duration-150";
+            } else if (type === 'warning') {
+                iconMarkup = '<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>';
+                toast.className = "fixed bottom-5 right-5 bg-slate-900 text-slate-100 border border-amber-800 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50 transition duration-150";
+            } else if (type === 'danger') {
+                iconMarkup = '<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i>';
+                toast.className = "fixed bottom-5 right-5 bg-slate-900 text-slate-100 border border-rose-800 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50 transition duration-150";
+            } else {
+                toast.className = "fixed bottom-5 right-5 bg-slate-900 text-slate-100 border border-slate-800 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50 transition duration-150";
+            }
+
+            icon.innerHTML = iconMarkup;
+            lucide.createIcons();
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Backup Export Utilities
+        function openExportModal() {
+            const stateExport = {
+                properties: properties,
+                manualTenants: manualTenants
+            };
+            const jsonStr = JSON.stringify(stateExport, null, 2);
+            document.getElementById('export-data-json').value = jsonStr;
+            document.getElementById('export-modal').classList.remove('hidden');
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+
+        function copyExportJson() {
+            const textarea = document.getElementById('export-data-json');
+            textarea.select();
+            document.execCommand('copy');
+            showToast("JSONデータをクリップボードにコピーしました！", "success");
+        }
+
+        function downloadBackupFile() {
+            const stateExport = {
+                properties: properties,
+                manualTenants: manualTenants
+            };
+            const jsonStr = JSON.stringify(stateExport, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().substring(0, 10);
+            a.href = url;
+            a.download = `物件開発DB_バックアップ_${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("JSONバックアップファイルをエクスポートしました。", "success");
+        }
+
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.properties && Array.isArray(parsed.properties)) {
+                        properties = parsed.properties;
+                        manualTenants = parsed.manualTenants || [];
+                        saveData();
+                        switchView('dashboard');
+                        showToast("Googleドライブのバックアップからデータを復元しました！", "success");
+                        closeExportModal();
+                    } else if (Array.isArray(parsed)) {
+                        properties = parsed;
+                        manualTenants = [];
+                        saveData();
+                        switchView('dashboard');
+                        showToast("以前の物件データを正常に復元しました。", "success");
+                        closeExportModal();
+                    } else {
+                        showToast("非対応のバックアップファイルです。", "danger");
+                    }
+                } catch(err) {
+                    showToast("JSONの読み込みに失敗しました。ファイルを確認してください。", "danger");
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
