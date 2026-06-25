@@ -179,11 +179,12 @@
                             </div>
                             <select id="filter-type" onchange="filterProperties()" class="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
                                 <option value="">全ての種別</option>
-                                <option value="土地">土地</option>
+                                <option value="建て貸し">建て貸し</option>
                                 <option value="居抜き">居抜き</option>
                                 <option value="借地">借地</option>
-                                <option value="売買">売買</option>
                                 <option value="ビルイン">ビルイン</option>
+                                <option value="売買">売買</option>
+                                <option value="その他">その他</option>
                             </select>
                             <select id="filter-rank" onchange="filterProperties()" class="w-full px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
                                 <option value="">全ての重要ランク</option>
@@ -219,7 +220,8 @@
                         <tr class="border-b border-slate-200 text-xs font-bold text-slate-500 uppercase bg-slate-50">
                             <th class="py-2.5 px-4 w-16 text-center">ランク</th>
                             <th class="py-2.5 px-4">物件・計画名</th>
-                            <th class="py-2.5 px-4 w-40 text-right">面積 (㎡ / 坪)</th>
+                            <th class="py-2.5 px-4 w-44 text-right">土地面積 (㎡ / 坪)</th>
+                            <th class="py-2.5 px-4 w-44 text-right">床面積 (㎡ / 坪)</th>
                             <th class="py-2.5 px-4 w-24">種別</th>
                             <th class="py-2.5 px-4 w-28">地権者承諾</th>
                         </tr>
@@ -234,23 +236,41 @@
         <!-- ==================== VIEW 3: TENANT DATABASE ==================== -->
         <div id="view-tenant-db" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-2 gap-2">
-                <div>
-                    <h2 class="text-xs font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
-                        <i data-lucide="database" class="w-4 h-4 text-brand-500"></i> 出店想定・希望テナントDB
-                    </h2>
-                    <p class="text-[9px] text-slate-400 mt-0.5">物件自動連動想定テナント、および直接手動追加された登録データベース</p>
+                <div class="flex items-center gap-3">
+                    <div>
+                        <h2 class="text-xs font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
+                            <i data-lucide="database" class="w-4 h-4 text-brand-500"></i> 出店想定・希望テナントDB
+                        </h2>
+                        <p class="text-[9px] text-slate-400 mt-0.5">物件自動連動想定テナント、および直接手動追加された登録データベース</p>
+                    </div>
                 </div>
-                <button onclick="openNewTenantModal()" class="flex items-center gap-1 px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold rounded-lg transition self-end sm:self-auto">
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> テナント手動追加
-                </button>
+                <div class="flex items-center gap-2 self-end sm:self-auto flex-wrap">
+                    <!-- Tenant DB Filter Type -->
+                    <div class="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+                        <span class="text-[9px] text-slate-500 font-bold shrink-0">種別分類:</span>
+                        <select id="tenant-filter-type" onchange="renderTenantDatabase()" class="px-2 py-0.5 text-xs bg-white border border-slate-200 rounded focus:outline-none">
+                            <option value="">全ての物件種別</option>
+                            <option value="建て貸し">建て貸し</option>
+                            <option value="居抜き">居抜き</option>
+                            <option value="借地">借地</option>
+                            <option value="ビルイン">ビルイン</option>
+                            <option value="売買">売買</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    <button onclick="openNewTenantModal()" class="flex items-center gap-1 px-2.5 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold rounded-lg transition">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> テナント手動追加
+                    </button>
+                </div>
             </div>
 
             <div class="overflow-x-auto rounded-lg border border-slate-150">
-                <table class="w-full text-left border-collapse min-w-[800px]">
+                <table class="w-full text-left border-collapse min-w-[900px]">
                     <thead>
                         <tr class="border-b border-slate-200 text-xs font-bold text-slate-500 uppercase bg-slate-50">
                             <th class="py-2.5 px-4 w-24">データソース</th>
                             <th class="py-2.5 px-4">テナント名</th>
+                            <th class="py-2.5 px-4 w-32">対応物件種別</th>
                             <th class="py-2.5 px-4 w-40">希望 / 実績エリア</th>
                             <th class="py-2.5 px-4 w-36 text-right">想定/希望面積 (㎡/坪)</th>
                             <th class="py-2.5 px-4 w-20 text-center">感触</th>
@@ -324,23 +344,25 @@
                                 <div>
                                     <label class="block font-bold text-slate-600 mb-1">物件種別 <span class="text-rose-500">*</span></label>
                                     <select id="prop-type" required class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
-                                        <option value="土地">土地</option>
+                                        <option value="建て貸し">建て貸し</option>
                                         <option value="居抜き">居抜き</option>
                                         <option value="借地">借地</option>
-                                        <option value="売買">売買</option>
                                         <option value="ビルイン">ビルイン</option>
+                                        <option value="売買">売買</option>
+                                        <option value="その他">その他</option>
                                     </select>
                                 </div>
 
+                                <!-- Land Area -->
                                 <div>
-                                    <label class="block font-bold text-slate-600 mb-1">面積 (㎡)</label>
+                                    <label class="block font-bold text-slate-600 mb-1">土地面積 (㎡)</label>
                                     <div class="relative">
                                         <input type="number" step="0.01" id="prop-area" oninput="calculateTsubo('prop-area', 'prop-tsubo-display')" placeholder="例: 1000" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono font-semibold">
                                         <span class="absolute right-3 top-1.5 text-slate-400">㎡</span>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block font-bold text-slate-400 mb-1">換算坪数 (自動計算)</label>
+                                    <label class="block font-bold text-slate-400 mb-1">換算土地坪数 (自動計算)</label>
                                     <div class="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-600 font-mono font-bold" id="prop-tsubo-display">
                                         0.0 坪
                                     </div>
@@ -350,10 +372,25 @@
                                     <input type="text" id="prop-chiban" placeholder="例: 101番地1" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
                                 </div>
 
+                                <!-- Optional Building Floor Area -->
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-1">建物床面積 (㎡) <span class="text-[10px] text-slate-400 font-medium">(任意)</span></label>
+                                    <div class="relative">
+                                        <input type="number" step="0.01" id="prop-building-area" oninput="calculateTsubo('prop-building-area', 'prop-building-tsubo-display')" placeholder="例: 350" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-mono">
+                                        <span class="absolute right-3 top-1.5 text-slate-400">㎡</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-400 mb-1">換算床坪数 (自動計算)</label>
+                                    <div class="bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-600 font-mono font-bold" id="prop-building-tsubo-display">
+                                        0.0 坪
+                                    </div>
+                                </div>
                                 <div>
                                     <label class="block font-bold text-slate-600 mb-1">用途地域</label>
                                     <input type="text" id="prop-zone" placeholder="例: 第一種住居地域" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
                                 </div>
+
                                 <div>
                                     <label class="block font-bold text-slate-600 mb-1">確認日</label>
                                     <input type="date" id="prop-confirm-date" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
@@ -524,14 +561,36 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block font-bold text-slate-600 mb-1">希望/実績エリア <span class="text-rose-500">*</span></label>
-                        <input type="text" id="m-tenant-area" required placeholder="例: 東京都町田市" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold">
+                        <label class="block font-bold text-slate-600 mb-1">対応希望物件種別 <span class="text-rose-500">*</span></label>
+                        <select id="m-tenant-type" required class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
+                            <option value="建て貸し">建て貸し</option>
+                            <option value="居抜き">居抜き</option>
+                            <option value="借地">借地</option>
+                            <option value="ビルイン">ビルイン</option>
+                            <option value="売買">売買</option>
+                            <option value="その他">その他</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block font-bold text-slate-600 mb-1">申込ステータス</label>
                         <select id="m-tenant-app" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
                             <option value="未受領">未受領</option>
                             <option value="受領">受領済</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">希望/実績エリア <span class="text-rose-500">*</span></label>
+                        <input type="text" id="m-tenant-area" required placeholder="例: 東京都町田市" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-600 mb-1">テナント感触ランク</label>
+                        <select id="m-tenant-feel" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
+                            <option value="A">A (良好)</option>
+                            <option value="B">B (見込)</option>
+                            <option value="C">C (消極/交渉中)</option>
                         </select>
                     </div>
                 </div>
@@ -553,17 +612,6 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block font-bold text-slate-600 mb-1">テナント感触ランク</label>
-                        <select id="m-tenant-feel" class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
-                            <option value="A">A (良好)</option>
-                            <option value="B">B (見込)</option>
-                            <option value="C">C (消極/交渉中)</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="pt-2 border-t border-slate-100 flex justify-end gap-1.5">
                     <button type="button" onclick="closeTenantModal()" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition">キャンセル</button>
                     <button type="submit" class="px-5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg shadow-sm transition">データベースに保存</button>
@@ -577,7 +625,7 @@
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col my-8">
             <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
                 <h3 class="text-xs font-bold tracking-wider uppercase flex items-center gap-2">
-                    <i data-lucide="cloud" class="w-4 h-4 text-brand-400"></i> クラウド同期・バックアップ管理
+                    <i data-lucide="cloud" class="w-4 h-4 text-brand-400"></i>  クラウド同期・バックアップ管理
                 </h3>
                 <button onclick="closeExportModal()" class="text-slate-400 hover:text-white transition">
                     <i data-lucide="x" class="w-6 h-6"></i>
@@ -597,7 +645,7 @@
                             <span class="font-bold text-slate-800">【方法 A】最も簡単！コピペで復元する</span>
                             <p class="text-[11px] text-slate-500 pl-1 leading-normal">
                                 1. iPhoneの「Googleドライブ」アプリでバックアップJSONファイルを開く。<br>
-                                2. 中身のテキストを「<strong>すべてコピー</strong>」する。<br>
+                                2. 中身 of テキストを「<strong>すべてコピー</strong>」する。<br>
                                 3. 下の入力エリアに貼り付けて「<strong>ペースト領域から今すぐ復元</strong>」をタップ。
                             </p>
                         </div>
@@ -641,8 +689,8 @@
                         <button onclick="copyExportJson()" class="flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition text-xs">
                             <i data-lucide="copy" class="w-3.5 h-3.5"></i> コピー
                         </button>
-                        <button onclick="downloadBackupFile()" class="flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg shadow-sm transition text-xs">
-                            <i data-lucide="download" class="w-4 h-4"></i> ファイル保存
+                        <button onclick="downloadBackupFile()" class="flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg shadow-sm transition text-xs" title="PC等では保存先ダイアログから上書きまたは新規保存、スマホではシステム保存が起動します。">
+                            <i data-lucide="save" class="w-4 h-4"></i> バックアップを保存
                         </button>
                     </div>
                 </div>
@@ -657,7 +705,7 @@
                 <i data-lucide="alert-triangle" class="w-5 h-5 shrink-0"></i>
                 <h4 class="font-extrabold text-sm text-slate-800" id="confirm-title">警告</h4>
             </div>
-            <p class="text-xs text-slate-500 leading-relaxed font-semibold" id="confirm-message">本当に実行しますか？</p>
+            <p class="text-xs text-slate-500 leading-relaxed font-semibold" id="confirm-message">本当に実行しますか?</p>
             <div class="flex justify-end gap-1.5 text-xs font-bold pt-2 border-t border-slate-50">
                 <button id="confirm-cancel-btn" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
                     キャンセル
@@ -685,6 +733,7 @@
                 address: "神奈川県厚木市岡田3丁目10-5",
                 chiban: "岡田字大六天543番1",
                 area: 1250.8,
+                buildingArea: 0,
                 zone: "準工業地域",
                 landowners: ["鈴木 健二 (親族代表・居住地横浜市)", "鈴木 芳子 (共有持分者)"],
                 mortgage: true,
@@ -716,6 +765,7 @@
                 address: "東京都八王子市子安町1丁目2-3",
                 chiban: "子安町12番3",
                 area: 210.0,
+                buildingArea: 180.0,
                 zone: "商業地域",
                 landowners: ["株式会社八王子不動産ビル開発"],
                 mortgage: false,
@@ -745,6 +795,7 @@
                 address: "神奈川県平塚市河内350-1",
                 chiban: "河内字上原350番",
                 area: 850.5,
+                buildingArea: 0,
                 zone: "ロードサイド商業",
                 landowners: ["高橋 義雄 (地元地主)"],
                 mortgage: false,
@@ -772,6 +823,7 @@
             {
                 id: "manual-ten-1",
                 name: "回転寿司チェーンS",
+                type: "建て貸し",
                 areaName: "神奈川県厚木市、伊勢原市",
                 sizeM2: 990.0,
                 sizeTsubo: 300.0,
@@ -782,6 +834,7 @@
             {
                 id: "manual-ten-2",
                 name: "24hコンビニK",
+                type: "ビルイン",
                 areaName: "東京都八王子市周辺",
                 sizeM2: 198.3,
                 sizeTsubo: 60.0,
@@ -960,12 +1013,14 @@
         function rebuildTenantDatabase() {
             tenantDatabase = [];
 
+            // 1. Process automatic ones from properties
             properties.forEach(p => {
                 if (p.tenants && p.tenants.length > 0) {
                     p.tenants.forEach((t, index) => {
                         tenantDatabase.push({
                             id: `auto-${p.id}-${index}`,
                             name: t.name,
+                            type: p.type || "その他", // Automatic matching type
                             areaName: extractArea(p.address),
                             sizeM2: p.area || 0,
                             sizeTsubo: p.area ? parseFloat((p.area * 0.3025).toFixed(1)) : 0,
@@ -979,10 +1034,12 @@
                 }
             });
 
+            // 2. Process manual ones
             manualTenants.forEach(mt => {
                 tenantDatabase.push({
                     id: mt.id,
                     name: mt.name,
+                    type: mt.type || "その他",
                     areaName: mt.areaName,
                     sizeM2: mt.sizeM2 || 0,
                     sizeTsubo: mt.sizeTsubo || (mt.sizeM2 ? parseFloat((mt.sizeM2 * 0.3025).toFixed(1)) : 0),
@@ -1150,7 +1207,7 @@
             if (properties.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="py-12 text-center text-slate-400">
+                        <td colspan="6" class="py-12 text-center text-slate-400">
                             <i data-lucide="folder-search" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
                             <p class="text-xs">登録されている案件情報がありません。</p>
                         </td>
@@ -1162,6 +1219,7 @@
 
             properties.forEach(p => {
                 const areaTsubo = p.area ? (p.area * 0.3025).toFixed(1) : '0.0';
+                const buildingTsubo = p.buildingArea ? (p.buildingArea * 0.3025).toFixed(1) : '0.0';
                 
                 let rankBadge = '';
                 if (p.rank === 'A') {
@@ -1179,14 +1237,20 @@
                         </td>
                         <td class="py-3 px-4">
                             <div class="font-bold text-slate-800 leading-normal hover:text-brand-600 transition">${p.name}</div>
-                            <div class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[380px]">${p.address}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[320px]">${p.address}</div>
                         </td>
+                        <!-- Land Area -->
                         <td class="py-3 px-4 text-right font-mono text-slate-700">
                             <span class="font-bold">${p.area ? p.area.toLocaleString() : '-'}</span> <span class="text-slate-400 text-[10px]">㎡</span>
                             <div class="text-[10px] text-slate-400 font-medium">${areaTsubo} 坪</div>
                         </td>
+                        <!-- Floor Area -->
+                        <td class="py-3 px-4 text-right font-mono text-slate-700">
+                            <span class="font-bold">${p.buildingArea ? p.buildingArea.toLocaleString() : '-'}</span> <span class="text-slate-400 text-[10px]">㎡</span>
+                            <div class="text-[10px] text-slate-400 font-medium">${p.buildingArea ? buildingTsubo + ' 坪' : '-'}</div>
+                        </td>
                         <td class="py-3 px-4">
-                            <span class="inline-block text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/40">${p.type}</span>
+                            <span class="inline-block text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/40">${p.type || "その他"}</span>
                         </td>
                         <td class="py-3 px-4">
                             <span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full ${p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}">
@@ -1200,18 +1264,25 @@
             lucide.createIcons();
         }
 
-        // Tenant Database Renderer
+        // Tenant Database Renderer with type filter classification
         function renderTenantDatabase() {
             rebuildTenantDatabase();
             const tableBody = document.getElementById('tenant-table-body');
+            const filterType = document.getElementById('tenant-filter-type').value;
+            
             tableBody.innerHTML = '';
 
-            if (tenantDatabase.length === 0) {
+            // Filter classification logic
+            const filteredTenantDb = tenantDatabase.filter(t => {
+                return !filterType || t.type === filterType;
+            });
+
+            if (filteredTenantDb.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="py-12 text-center text-slate-400">
+                        <td colspan="8" class="py-12 text-center text-slate-400">
                             <i data-lucide="database" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
-                            <p class="text-xs">想定・希望テナントが登録されていません。</p>
+                            <p class="text-xs">条件に該当する想定・希望テナント要件は見つかりません。</p>
                         </td>
                     </tr>
                 `;
@@ -1219,7 +1290,7 @@
                 return;
             }
 
-            tenantDatabase.forEach(t => {
+            filteredTenantDb.forEach(t => {
                 const feelColor = t.feel === 'A' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : t.feel === 'B' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200';
                 const statusBadge = t.application === '受領' ? 'bg-brand-500 text-white font-extrabold shadow-2xs' : 'bg-slate-100 text-slate-500 border-slate-200';
                 
@@ -1251,6 +1322,10 @@
                         <td class="py-2.5 px-4">
                             <div class="font-bold text-slate-800 leading-normal">${t.name}</div>
                             ${!t.isManual ? `<div class="text-[9px] text-slate-400 mt-0.5 max-w-[200px] truncate">連動: ${t.sourcePropertyName}</div>` : ''}
+                        </td>
+                        <!-- Object Type Representation inside Tenant database -->
+                        <td class="py-2.5 px-4">
+                            <span class="inline-block text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200/50">${t.type || "その他"}</span>
                         </td>
                         <td class="py-2.5 px-4 font-semibold text-slate-600">
                             ${areaDisplay}
@@ -1395,6 +1470,7 @@
             document.getElementById('visits-container').innerHTML = "";
             document.getElementById('tenants-container').innerHTML = "";
             document.getElementById('prop-tsubo-display').innerText = "0.0 坪";
+            document.getElementById('prop-building-tsubo-display').innerText = "0.0 坪";
             
             document.getElementById('prop-confirm-date').value = new Date().toISOString().substring(0, 10);
             document.getElementById('btn-delete-prop').classList.add('hidden');
@@ -1428,8 +1504,10 @@
             document.getElementById('prop-address').value = p.address;
             document.getElementById('prop-chiban').value = p.chiban || '';
             document.getElementById('prop-area').value = p.area || '';
+            document.getElementById('prop-building-area').value = p.buildingArea || '';
             
             calculateTsubo('prop-area', 'prop-tsubo-display');
+            calculateTsubo('prop-building-area', 'prop-building-tsubo-display');
 
             document.getElementById('prop-zone').value = p.zone || '';
             document.getElementById('prop-confirm-date').value = p.confirmDate || '';
@@ -1466,7 +1544,7 @@
             const tenantsContainer = document.getElementById('tenants-container');
             tenantsContainer.innerHTML = "";
             if (p.tenants && p.tenants.length > 0) {
-                p.tenants.forEach(t => addTenantRow(t.name, t.feel, t.application));
+                p.tenants.forEach(t => addTenantRow(t.name, t.feel, p.type)); // Fallback type alignment
             } else {
                 addTenantRow("", "B", "未受領");
             }
@@ -1657,11 +1735,33 @@
                     showToast("過去バージョンの物件データをインポートしました。", "success");
                     closeExportModal();
                 } else {
-                    showToast("JSONデータが本システム専用の構成ではありません。", "danger");
+                    showToast("JSONデータが本システム専用의構成ではありません。", "danger");
                 }
             } catch(e) {
                 showToast("貼り付けられたコードに不備（余分なスペースや文字の欠落）があります。正しいJSONをご確認ください。", "danger");
             }
+        }
+
+        // JSON Export Modal Control Handlers
+        function openExportModal() {
+            const stateExport = {
+                properties: properties,
+                manualTenants: manualTenants
+            };
+            const jsonStr = JSON.stringify(stateExport, null, 2);
+            document.getElementById('export-data-json').value = jsonStr;
+            document.getElementById('export-modal').classList.remove('hidden');
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+
+        function copyExportJson() {
+            const textarea = document.getElementById('export-data-json');
+            textarea.select();
+            document.execCommand('copy');
+            showToast("JSONデータをクリップボードにコピーしました！", "success");
         }
 
         function handleFormSubmit(event) {
@@ -1674,6 +1774,7 @@
             const address = document.getElementById('prop-address').value.trim();
             const chiban = document.getElementById('prop-chiban').value.trim();
             const area = parseFloat(document.getElementById('prop-area').value) || null;
+            const buildingArea = parseFloat(document.getElementById('prop-building-area').value) || null;
             const zone = document.getElementById('prop-zone').value.trim();
             const confirmDate = document.getElementById('prop-confirm-date').value;
             
@@ -1727,7 +1828,7 @@
                 const newId = `prop-${Date.now()}`;
                 const newProp = {
                     id: newId,
-                    name, type, rank, address, chiban, area, zone, confirmDate,
+                    name, type, rank, address, chiban, area, buildingArea, zone, confirmDate,
                     landowners, mortgage, consent, terms, visits, tenants, lat, lng,
                     hasBroker, brokerName, brokerContact, brokerFee, planningFee,
                     createdAt: new Date().toISOString()
@@ -1739,7 +1840,7 @@
                 if (idx !== -1) {
                     properties[idx] = {
                         ...properties[idx],
-                        name, type, rank, address, chiban, area, zone, confirmDate,
+                        name, type, rank, address, chiban, area, buildingArea, zone, confirmDate,
                         landowners, mortgage, consent, terms, visits, tenants, lat, lng,
                         hasBroker, brokerName: hasBroker === 'yes' ? brokerName : '',
                         brokerContact: hasBroker === 'yes' ? brokerContact : '',
@@ -1786,6 +1887,7 @@
 
             document.getElementById('manual-tenant-id').value = t.id;
             document.getElementById('m-tenant-name').value = t.name;
+            document.getElementById('m-tenant-type').value = t.type || "その他";
             document.getElementById('m-tenant-area').value = t.areaName;
             document.getElementById('m-tenant-size').value = t.sizeM2 || "";
             document.getElementById('m-tenant-tsubo').value = t.sizeTsubo || "";
@@ -1804,6 +1906,7 @@
 
             const id = document.getElementById('manual-tenant-id').value;
             const name = document.getElementById('m-tenant-name').value.trim();
+            const type = document.getElementById('m-tenant-type').value;
             const areaName = document.getElementById('m-tenant-area').value.trim();
             const sizeM2 = parseFloat(document.getElementById('m-tenant-size').value) || null;
             const sizeTsubo = parseFloat(document.getElementById('m-tenant-tsubo').value) || null;
@@ -1813,7 +1916,7 @@
             if (!id) {
                 const newT = {
                     id: `manual-ten-${Date.now()}`,
-                    name, areaName, sizeM2, sizeTsubo, feel, application,
+                    name, type, areaName, sizeM2, sizeTsubo, feel, application,
                     isManual: true
                 };
                 manualTenants.push(newT);
@@ -1823,7 +1926,7 @@
                 if (idx !== -1) {
                     manualTenants[idx] = {
                         ...manualTenants[idx],
-                        name, areaName, sizeM2, sizeTsubo, feel, application
+                        name, type, areaName, sizeM2, sizeTsubo, feel, application
                     };
                     showToast("テナントデータベースの情報を更新しました。", "success");
                 }
@@ -1882,47 +1985,76 @@
             }, 3000);
         }
 
-        // Backup Export Utilities
-        function openExportModal() {
+        // Backup Export & File System Access API
+        async function downloadBackupFile() {
             const stateExport = {
                 properties: properties,
                 manualTenants: manualTenants
             };
             const jsonStr = JSON.stringify(stateExport, null, 2);
-            document.getElementById('export-data-json').value = jsonStr;
-            document.getElementById('export-modal').classList.remove('hidden');
-        }
+            const dateStr = new Date().toISOString().substring(0, 10);
+            const fileName = `物件開発DB_バックアップ_${dateStr}.json`;
 
-        function closeExportModal() {
-            document.getElementById('export-modal').classList.add('hidden');
-        }
+            // 1. Try modern File System Access API if supported (PC Chrome, Edge, etc.)
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const options = {
+                        suggestedName: fileName,
+                        types: [{
+                            description: 'JSON Backup Files',
+                            accept: {
+                                'application/json': ['.json'],
+                            },
+                        }],
+                    };
+                    const handle = await window.showSaveFilePicker(options);
+                    const writable = await handle.createWritable();
+                    await writable.write(jsonStr);
+                    await writable.close();
+                    showToast("指定された保存先へデータを保存（上書き）しました！", "success");
+                    return;
+                } catch (err) {
+                    // Ignore user aborting the picker
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
+                    console.warn("showSaveFilePicker failed or blocked inside context, using standard Blob download fallback:", err);
+                }
+            }
 
-        // Clipboard Copy
-        function copyExportJson() {
-            const textarea = document.getElementById('export-data-json');
-            textarea.select();
-            document.execCommand('copy');
-            showToast("JSONデータをクリップボードにコピーしました！", "success");
-        }
+            // 2. Try Web Share API (Especially great for iPhone Safari to allow user to pick Drive/Files directory)
+            if (navigator.share && navigator.canShare) {
+                try {
+                    const file = new File([jsonStr], fileName, { type: "application/json" });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: '物件開発DB バックアップ',
+                            text: 'Googleドライブやファイルアプリの任意のフォルダに直接上書きまたは新規保存できます。'
+                        });
+                        showToast("保存・共有用ダイアログを起動しました。保存先フォルダを選択してください。", "success");
+                        return;
+                    }
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.warn("Web Share API failed, falling back:", err);
+                    } else {
+                        return; // User cancelled
+                    }
+                }
+            }
 
-        // File Download
-        function downloadBackupFile() {
-            const stateExport = {
-                properties: properties,
-                manualTenants: manualTenants
-            };
-            const jsonStr = JSON.stringify(stateExport, null, 2);
+            // 3. Fallback Blob download (Firefox, Older Browsers, and sandboxed iframes)
             const blob = new Blob([jsonStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            const dateStr = new Date().toISOString().substring(0, 10);
             a.href = url;
-            a.download = `物件開発DB_バックアップ_${dateStr}.json`;
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast("JSONバックアップファイルをエクスポートしました。", "success");
+            showToast("バックアップファイルをエクスポートしました。ブラウザのダウンロードフォルダに保存されました。上書きする場合は、ドライブ等の保存先選択画面で同一のファイルを上書き指定してください。", "success");
         }
 
         function triggerImport() {
