@@ -147,7 +147,7 @@
         <!-- ==================== VIEW 1: DASHBOARD ==================== -->
         <div id="view-dashboard" class="space-y-4 hidden">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <!-- Left Side: Interactive Map (5/12 by default, can maximize to 12/12) -->
+                <!-- Left Side: Interactive Map -->
                 <div id="map-container" class="lg:col-span-5 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200/80 p-4 transition-all duration-300">
                     <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
                         <h2 class="text-xs font-bold text-slate-500 tracking-wider uppercase flex items-center gap-1.5">
@@ -161,7 +161,7 @@
                     <div id="map" class="w-full"></div>
                 </div>
 
-                <!-- Right Side: Mini List & Filters (7/12 by default, hidden when maximized) -->
+                <!-- Right Side: Mini List & Filters -->
                 <div id="right-dashboard-container" class="lg:col-span-7 flex flex-col bg-white rounded-xl shadow-sm border border-slate-200/80 p-4">
                     <!-- Filters Panel -->
                     <div class="flex flex-col gap-2 mb-3 pb-3 border-b border-slate-100">
@@ -572,43 +572,77 @@
         </div>
     </div>
 
-    <!-- Modal: JSON Backup & Cloud Synchronization Manager -->
-    <div id="export-modal" class="hidden fixed inset-0 bg-slate-950/55 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col">
-            <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center">
+    <!-- Modal: JSON Backup, Cloud Synchronization & Text Paste Manager -->
+    <div id="export-modal" class="hidden fixed inset-0 bg-slate-950/55 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col my-8">
+            <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
                 <h3 class="text-xs font-bold tracking-wider uppercase flex items-center gap-2">
-                    <i data-lucide="cloud" class="w-4 h-4 text-brand-400"></i> Googleドライブ連携・データバックアップ
+                    <i data-lucide="cloud" class="w-4 h-4 text-brand-400"></i> クラウド同期・バックアップ管理
                 </h3>
                 <button onclick="closeExportModal()" class="text-slate-400 hover:text-white transition">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
-            <div class="p-5 space-y-4 text-xs leading-relaxed text-slate-600">
-                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200/60">
-                    <h4 class="font-bold text-slate-800 mb-1 flex items-center gap-1">
-                        <i data-lucide="info" class="w-4 h-4 text-brand-500"></i> iPhoneとPCでデータを同期する手順
+            
+            <div class="p-5 space-y-4 text-xs leading-relaxed text-slate-600 overflow-y-auto max-h-[75vh] custom-scrollbar">
+                
+                <!-- iPhone User Guide -->
+                <div class="bg-brand-50/50 p-4 rounded-xl border border-brand-100 space-y-2.5">
+                    <h4 class="font-extrabold text-brand-900 flex items-center gap-1.5 text-xs">
+                        <i data-lucide="smartphone" class="w-4 h-4 text-brand-600"></i> iPhoneでGoogleドライブを同期する方法
                     </h4>
-                    <ol class="list-decimal pl-4 space-y-1 text-slate-600">
-                        <li>この画面の「<strong>バックアップを保存</strong>」をタップし、JSONファイルを保存。</li>
-                        <li>そのファイルを<strong>Googleドライブ</strong>の特定フォルダへアップロード。</li>
-                        <li>別端末で本アプリを開き、「<strong>Googleドライブから復元</strong>」から該当ファイルを選んで読み込みます。</li>
-                    </ol>
+                    
+                    <div class="space-y-3 text-slate-700">
+                        <div class="space-y-1">
+                            <span class="font-bold text-slate-800">【方法 A】最も簡単！コピペで復元する</span>
+                            <p class="text-[11px] text-slate-500 pl-1 leading-normal">
+                                1. iPhoneの「Googleドライブ」アプリでバックアップJSONファイルを開く。<br>
+                                2. 中身のテキストを「<strong>すべてコピー</strong>」する。<br>
+                                3. 下の入力エリアに貼り付けて「<strong>ペースト領域から今すぐ復元</strong>」をタップ。
+                            </p>
+                        </div>
+                        
+                        <div class="space-y-1 border-t border-brand-100/50 pt-2">
+                            <span class="font-bold text-slate-800">【方法 B】iOS「ファイル」アプリにドライブを追加する</span>
+                            <p class="text-[11px] text-slate-500 pl-1 leading-normal">
+                                1. iPhone標準の「<strong>ファイル</strong>」アプリを起動。<br>
+                                2. 画面右上の「<strong>… (メニューボタン)</strong>」➔「<strong>編集</strong>」をタップ。<br>
+                                3. 「<strong>Google Drive</strong>」のスイッチをオン(有効)にして完了！<br>
+                                4. 以降は下の「ファイルを選択」から直接ドライブ内を選択できます。
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <textarea id="export-data-json" readonly rows="5" class="w-full p-2 font-mono text-[10px] bg-slate-950 text-emerald-400 rounded-lg border border-slate-800 focus:outline-none"></textarea>
+                <!-- Text-based paste restore system (NEW) -->
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-slate-700 flex items-center justify-between">
+                        <span>📋 バックアップデータのインポート / エクスポート窓口</span>
+                        <span class="text-[10px] text-brand-600 font-extrabold">※コピペでの流し込み・復元が可能です</span>
+                    </label>
+                    <textarea id="export-data-json" placeholder="ここにバックアップJSONテキストを貼り付けて復元することができます..." rows="6" class="w-full p-2.5 font-mono text-[10px] bg-slate-950 text-emerald-400 rounded-lg border border-slate-800 focus:outline-none custom-scrollbar"></textarea>
+                </div>
                 
-                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-2 border-t border-slate-100">
-                    <!-- Import/Restore -->
-                    <button onclick="triggerImport()" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition text-xs">
-                        <i data-lucide="upload-cloud" class="w-4 h-4 text-brand-600"></i> Googleドライブから復元
-                    </button>
-                    <!-- Copy & Download Export -->
+                <!-- Import Actions (Manual / Auto File upload) -->
+                <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100 justify-between">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <!-- Direct Paste Restore -->
+                        <button onclick="restoreFromTextarea()" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition text-xs shadow-xs">
+                            <i data-lucide="clipboard-paste" class="w-4 h-4"></i> ペースト領域から今すぐ復元
+                        </button>
+                        
+                        <!-- Standard OS File picker -->
+                        <button onclick="triggerImport()" class="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg transition text-xs">
+                            <i data-lucide="folder-open" class="w-4 h-4 text-brand-600"></i> ファイルを選んで復元
+                        </button>
+                    </div>
+
                     <div class="flex gap-1.5">
                         <button onclick="copyExportJson()" class="flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition text-xs">
-                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> テキストコピー
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> コピー
                         </button>
                         <button onclick="downloadBackupFile()" class="flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg shadow-sm transition text-xs">
-                            <i data-lucide="download" class="w-4 h-4"></i> バックアップを保存
+                            <i data-lucide="download" class="w-4 h-4"></i> ファイル保存
                         </button>
                     </div>
                 </div>
@@ -1598,6 +1632,38 @@
             }
         }
 
+        // Manual Textarea Import Method
+        function restoreFromTextarea() {
+            const rawText = document.getElementById('export-data-json').value.trim();
+            if (!rawText) {
+                showToast("テキストボックスにバックアップデータが貼り付けられていません。", "warning");
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(rawText);
+                if (parsed.properties && Array.isArray(parsed.properties)) {
+                    properties = parsed.properties;
+                    manualTenants = parsed.manualTenants || [];
+                    saveData();
+                    switchView('dashboard');
+                    showToast("貼り付けられたデータからデータベースを正常復元しました！", "success");
+                    closeExportModal();
+                } else if (Array.isArray(parsed)) {
+                    properties = parsed;
+                    manualTenants = [];
+                    saveData();
+                    switchView('dashboard');
+                    showToast("過去バージョンの物件データをインポートしました。", "success");
+                    closeExportModal();
+                } else {
+                    showToast("JSONデータが本システム専用の構成ではありません。", "danger");
+                }
+            } catch(e) {
+                showToast("貼り付けられたコードに不備（余分なスペースや文字の欠落）があります。正しいJSONをご確認ください。", "danger");
+            }
+        }
+
         function handleFormSubmit(event) {
             event.preventDefault();
 
@@ -1831,6 +1897,7 @@
             document.getElementById('export-modal').classList.add('hidden');
         }
 
+        // Clipboard Copy
         function copyExportJson() {
             const textarea = document.getElementById('export-data-json');
             textarea.select();
@@ -1838,6 +1905,7 @@
             showToast("JSONデータをクリップボードにコピーしました！", "success");
         }
 
+        // File Download
         function downloadBackupFile() {
             const stateExport = {
                 properties: properties,
@@ -1874,7 +1942,7 @@
                         manualTenants = parsed.manualTenants || [];
                         saveData();
                         switchView('dashboard');
-                        showToast("Googleドライブのバックアップからデータを復元しました！", "success");
+                        showToast("外部ファイルからデータを正常に復元しました！", "success");
                         closeExportModal();
                     } else if (Array.isArray(parsed)) {
                         properties = parsed;
