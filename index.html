@@ -32,7 +32,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Leaflet CSS & JS for Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link class="leaflet-css" rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         #map {
@@ -215,15 +215,16 @@
             </div>
 
             <div class="overflow-x-auto rounded-lg border border-slate-150">
-                <table class="w-full text-left border-collapse min-w-[650px]">
+                <table class="w-full text-left border-collapse min-w-[720px]">
                     <thead>
                         <tr class="border-b border-slate-200 text-xs font-bold text-slate-500 uppercase bg-slate-50">
                             <th class="py-2.5 px-4 w-16 text-center">ランク</th>
                             <th class="py-2.5 px-4">物件・計画名</th>
-                            <th class="py-2.5 px-4 w-44 text-right">土地面積 (㎡ / 坪)</th>
-                            <th class="py-2.5 px-4 w-44 text-right">床面積 (㎡ / 坪)</th>
+                            <th class="py-2.5 px-4 w-40 text-right">土地面積 (㎡ / 坪)</th>
+                            <th class="py-2.5 px-4 w-40 text-right">床面積 (㎡ / 坪)</th>
                             <th class="py-2.5 px-4 w-24">種別</th>
                             <th class="py-2.5 px-4 w-28">地権者承諾</th>
+                            <th class="py-2.5 px-4 w-28">申込書</th>
                         </tr>
                     </thead>
                     <tbody id="properties-table-body" class="divide-y divide-slate-100 text-xs">
@@ -405,7 +406,6 @@
                                         <input type="number" step="0.000001" id="prop-lng" oninput="updateDetailMapFromInputs()" class="w-full px-2 py-1 text-[10px] bg-white border border-slate-200 rounded">
                                     </div>
                                 </div>
-                                <div></div>
 
                                 <!-- Mini map container for interactive positioning -->
                                 <div class="sm:col-span-3">
@@ -1208,7 +1208,7 @@
             if (properties.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="py-12 text-center text-slate-400">
+                        <td colspan="7" class="py-12 text-center text-slate-400">
                             <i data-lucide="folder-search" class="w-10 h-10 mx-auto mb-2 stroke-1"></i>
                             <p class="text-xs">登録されている案件情報がありません。</p>
                         </td>
@@ -1230,6 +1230,12 @@
                 } else {
                     rankBadge = `<span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-extrabold w-6 h-6 rounded-md">C</span>`;
                 }
+
+                // 申込書受領ステータスの判定
+                const hasAppliedTenant = p.tenants && p.tenants.some(t => t.application === '受領');
+                const appliedBadge = hasAppliedTenant 
+                    ? `<span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border-emerald-100">受領済</span>`
+                    : `<span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 border-slate-200">未受領</span>`;
 
                 const rowHtml = `
                     <tr onclick="openEditPropertyView('${p.id}')" class="hover:bg-slate-50 cursor-pointer transition">
@@ -1257,6 +1263,9 @@
                             <span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full ${p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}">
                                 ${p.consent}
                             </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            ${appliedBadge}
                         </td>
                     </tr>
                 `;
@@ -1699,7 +1708,7 @@
                 if (matchedQuery === address) {
                     showToast("詳細住所のピン位置を特定しました！", "success");
                 } else {
-                    showToast(`詳細番地で特定できなかったため、「${matchedQuery}」付近にプロットしました。ピンを調整してください。`, "warning");
+                    showToast("詳細番地で特定できなかったため、近くにプロットしました。ピンを調整してください。", "warning");
                 }
             } else {
                 showToast("該当する位置情報が見つかりませんでした。右のマップをタップして位置を設定してください。", "danger");
