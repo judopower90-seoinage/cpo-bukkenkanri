@@ -46,6 +46,11 @@
             border-radius: 0.75rem;
             z-index: 10;
         }
+        #print-map {
+            height: 100%;
+            width: 100%;
+            z-index: 10;
+        }
         .custom-scrollbar::-webkit-scrollbar {
             width: 5px;
             height: 5px;
@@ -63,6 +68,46 @@
         /* Mobile Touch Target Optimizations */
         button, select, input, textarea {
             min-height: 36px;
+        }
+
+        /* ==================== PRINT SHEET CSS (A4 Landscape) ==================== */
+        #print-sheet {
+            display: none;
+        }
+        @media print {
+            /* Hide all standard elements */
+            body * {
+                visibility: hidden;
+            }
+            header, main, #confirm-modal, #export-modal, #tenant-modal, #toast {
+                display: none !important;
+            }
+            /* Show only the print sheet container */
+            #print-sheet, #print-sheet * {
+                visibility: visible;
+            }
+            #print-sheet {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 297mm; /* A4 Landscape standard */
+                height: 209mm;
+                background: white;
+                color: #0f172a;
+                padding: 10mm 12mm;
+                box-sizing: border-box;
+            }
+            /* Force Leaflet tile graphics to render when printing */
+            .leaflet-tile-container img {
+                box-shadow: none !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
         }
     </style>
 </head>
@@ -288,7 +333,7 @@
         <!-- ==================== VIEW 4: PROPERTY DETAIL / FORM ==================== -->
         <div id="view-detail" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4">
             <!-- Header buttons -->
-            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2 flex-wrap gap-2">
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="goBackFromDetail()" class="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition">
                         <i data-lucide="chevron-left" class="w-4 h-4"></i> 戻る
@@ -297,7 +342,11 @@
                         物件情報詳細
                     </h3>
                 </div>
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1 ml-auto">
+                    <!-- PDF Generation Button (NEW) -->
+                    <button type="button" onclick="generateBrokerPDF()" class="flex items-center gap-1 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg shadow-sm transition">
+                        <i data-lucide="printer" class="w-4 h-4"></i> 物件概要書をPDF出力
+                    </button>
                     <button type="button" id="btn-delete-prop" onclick="triggerDeleteProperty()" class="flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-red-600 text-xs font-bold rounded-lg transition">
                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 物件削除
                     </button>
@@ -316,7 +365,7 @@
                     <!-- Left Column: Base Specs -->
                     <div class="md:col-span-8 space-y-4">
                         <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                            <h4 class="text-slate-500 font-extrabold tracking-wider uppercase border-l-2 border-brand-500 pl-1.5">1. 物件基本スペック</h4>
+                            <h4 class="text-slate-500 font-extrabold tracking-wider uppercase border-l-2 border-brand-500 pl-1.5">1. 物件基本スペック (PDF概要書連携)</h4>
                             
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div class="sm:col-span-2">
@@ -433,6 +482,32 @@
 
                     <!-- Right Column: Landowner & Tenants -->
                     <div class="md:col-span-4 space-y-4">
+                        
+                        <!-- NEW specs: Print layout direct inputs -->
+                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <h4 class="text-slate-500 font-extrabold tracking-wider uppercase border-l-2 border-brand-500 pl-1.5">1-B. 物件概要書(PDF)用データ</h4>
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-0.5">賃料条件 (月額/坪単価等)</label>
+                                    <input type="text" id="prop-rent-display" placeholder="例: 月額 85万円 (坪5,000円)" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block font-bold text-slate-600 mb-0.5">契約形態</label>
+                                        <input type="text" id="prop-contract-type" placeholder="例: 定期建物賃貸借" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-600 mb-0.5">契約年数</label>
+                                        <input type="text" id="prop-contract-years" placeholder="例: 15年間" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-600 mb-0.5">概要書用備考欄</label>
+                                    <textarea id="prop-print-remarks" rows="2" placeholder="物件概要書(A4横)に印字される、特筆事項や交通アクセスなどを記述します。" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
                             <h4 class="text-slate-500 font-extrabold tracking-wider uppercase border-l-2 border-brand-500 pl-1.5">2. 地権者・条件</h4>
                             <div class="space-y-3">
@@ -645,7 +720,7 @@
                             <span class="font-bold text-slate-800">【方法 A】最も簡単！コピペで復元する</span>
                             <p class="text-[11px] text-slate-500 pl-1 leading-normal">
                                 1. iPhoneの「Googleドライブ」アプリでバックアップJSONファイルを開く。<br>
-                                2. 中身 of テキストを「<strong>すべてコピー</strong>」する。<br>
+                                2. 中身のテキストを「<strong>すべてコピー</strong>」する。<br>
                                 3. 下の入力エリアに貼り付けて「<strong>ペースト領域から今すぐ復元</strong>」をタップ。
                             </p>
                         </div>
@@ -723,6 +798,94 @@
         <span id="toast-message" class="text-xs font-bold">メッセージ</span>
     </div>
 
+    <!-- ==================== A4 LANDSCAPE PRINT SHEET VIEW (NEW) ==================== -->
+    <div id="print-sheet" class="hidden">
+        <!-- Title & Spec Table and Map Wrapper -->
+        <div class="h-full flex flex-col justify-between">
+            <div>
+                <!-- Report Header -->
+                <div class="border-b-4 border-slate-900 pb-2 mb-4 flex justify-between items-end">
+                    <h2 class="text-2xl font-black tracking-widest text-slate-900">不動産開発推進 物件概要書</h2>
+                    <span class="text-xs font-bold text-slate-500">開発管理ID: <span id="print-prop-id" class="font-mono">--</span></span>
+                </div>
+
+                <!-- Left Column Table & Right Column Map Grid -->
+                <div class="grid grid-cols-12 gap-5 items-start">
+                    
+                    <!-- Left Spec Table (7/12 Width) -->
+                    <div class="col-span-7 space-y-3">
+                        <table class="w-full text-xs text-left border-2 border-slate-900 border-collapse">
+                            <tbody>
+                                <tr class="border-b border-slate-900">
+                                    <th class="w-1/4 bg-slate-100 p-2.5 font-bold border-r border-slate-900 text-slate-800 text-[11px] uppercase tracking-wider">物件・計画名</th>
+                                    <td id="print-prop-name" class="p-2.5 font-extrabold text-[13px] text-slate-900" colspan="3">--</td>
+                                </tr>
+                                <tr class="border-b border-slate-900">
+                                    <th class="bg-slate-100 p-2.5 font-bold border-r border-slate-900 text-slate-800">所在地</th>
+                                    <td id="print-prop-address" class="p-2.5 font-semibold text-slate-800" colspan="3">--</td>
+                                </tr>
+                                <tr class="border-b border-slate-900">
+                                    <th class="bg-slate-100 p-2.5 font-bold border-r border-slate-900 text-slate-800">土地面積</th>
+                                    <td id="print-prop-land-area" class="p-2.5 font-mono font-bold text-slate-900">0.00 ㎡ (0.0 坪)</td>
+                                    <th class="w-1/5 bg-slate-100 p-2.5 font-bold border-r border-l border-slate-900 text-slate-800">建物床面積</th>
+                                    <td id="print-prop-floor-area" class="p-2.5 font-mono font-bold text-slate-900">--</td>
+                                </tr>
+                                <tr class="border-b border-slate-900">
+                                    <th class="bg-slate-100 p-2.5 font-bold border-r border-slate-900 text-slate-800">賃料条件</th>
+                                    <td id="print-prop-rent" class="p-2.5 font-extrabold text-[12px] text-brand-700" colspan="3">--</td>
+                                </tr>
+                                <tr class="border-b border-slate-900">
+                                    <th class="bg-slate-100 p-2.5 font-bold border-r border-slate-900 text-slate-800">契約形態</th>
+                                    <td id="print-prop-contract" class="p-2.5 font-semibold text-slate-800">--</td>
+                                    <th class="bg-slate-100 p-2.5 font-bold border-r border-l border-slate-900 text-slate-800">契約年数</th>
+                                    <td id="print-prop-years" class="p-2.5 font-semibold text-slate-800">--</td>
+                                </tr>
+                                <tr>
+                                    <th class="bg-slate-100 p-2.5 font-bold border-r border-slate-900 text-slate-800 align-top h-24">概要備考欄</th>
+                                    <td id="print-prop-remarks" class="p-2.5 text-slate-700 leading-relaxed align-top" colspan="3">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <!-- Mini access tips panel -->
+                        <div class="p-2.5 bg-slate-50 border border-slate-300 rounded-md">
+                            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">物件基本規格補足 / 地番・用途:</span>
+                            <p id="print-specs-fallback" class="text-[10px] text-slate-600 mt-0.5 leading-normal">
+                                地番：未登録 ・ 用途地域：未設定
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Right Side: Clean map output projection (5/12) -->
+                    <div class="lg:col-span-5 flex flex-col justify-stretch">
+                        <div class="flex items-center gap-1 text-[10px] font-bold text-slate-400 mb-1.5">
+                            <i data-lucide="info" class="w-3.5 h-3.5"></i> 所在地周辺地図
+                        </div>
+                        <div class="flex-grow border-2 border-slate-900 rounded-xl overflow-hidden relative" style="height: 120mm;">
+                            <div id="print-map"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Page Footer (Premium SVG Brand logo & date stamp) -->
+            <div class="border-t-2 border-slate-900 pt-3 flex justify-between items-center shrink-0">
+                <!-- Branding logo -->
+                <div class="flex items-center gap-2">
+                    <!-- Compass icon SVG -->
+                    <svg class="w-5 h-5 text-indigo-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                    </svg>
+                    <span class="text-xs font-black tracking-widest text-slate-800 uppercase">物件開発進捗管理データベース</span>
+                </div>
+                <!-- Time Stamp -->
+                <span class="text-[10px] font-bold text-slate-500">出力日: <span id="print-timestamp" class="font-mono">YYYY-MM-DD</span></span>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Default Mock Datasets
         const defaultProperties = [
@@ -756,6 +919,10 @@
                 brokerContact: "",
                 brokerFee: 0,
                 planningFee: 0,
+                rentDisplay: "月額 80万円 (坪2,100円想定)",
+                contractType: "定期借地権設定契約",
+                contractYears: "20年間",
+                printRemarks: "厚木バイパス(国道129号)から直入可能な角地。広大な敷地で大型ロードサイド店舗開発に最適。地権者の相続整理状況に合致。",
                 createdAt: "2026-04-10T09:00:00.000Z"
             },
             {
@@ -786,6 +953,10 @@
                 brokerContact: "佐藤 茂",
                 brokerFee: 1,
                 planningFee: 1,
+                rentDisplay: "月額 110万円 (坪約5,200円)",
+                contractType: "普通建物賃貸借契約",
+                contractYears: "10年間 (中途解約条項あり)",
+                printRemarks: "八王子駅南口ペデストリアンデッキ直結予定の好立地新築テナント。1階は大手物販店が入居調整中。",
                 createdAt: "2026-05-01T11:30:00.000Z"
             },
             {
@@ -795,7 +966,7 @@
                 address: "神奈川県平塚市河内350-1",
                 chiban: "河内字上原350番",
                 area: 850.5,
-                buildingArea: 0,
+                buildingArea: 420.0,
                 zone: "ロードサイド商業",
                 landowners: ["高橋 義雄 (地元地主)"],
                 mortgage: false,
@@ -814,6 +985,10 @@
                 brokerContact: "",
                 brokerFee: 0,
                 planningFee: 0,
+                rentDisplay: "月額 60万円 (借地料引き継ぎ)",
+                contractType: "定期建物賃貸借(残存引継)",
+                contractYears: "12年間",
+                printRemarks: "元大手外食チェーン店舗のロードサイド居抜き物件。内装厨房・空調の一部が残存しており初期コストを抑えた開業が可能。",
                 createdAt: "2026-03-25T15:20:00.000Z"
             }
         ];
@@ -851,7 +1026,9 @@
 
         let map;
         let detailMap;
+        let printMap; // Print preview map holder
         let detailMarker;
+        let printMarker;
         let markers = {};
         let currentView = 'dashboard';
         let previousView = 'dashboard';
@@ -1188,7 +1365,7 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2 self-end sm:self-auto">
-                            <span class="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">推進詳細 <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
+                            <span class="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">推進詳細 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></span>
                         </div>
                     </div>
                 `;
@@ -1484,6 +1661,13 @@
             document.getElementById('prop-broker-contact').value = '';
             document.getElementById('prop-broker-fee').value = '0';
             document.getElementById('prop-planning-fee').value = '0';
+            
+            // Reset print specs
+            document.getElementById('prop-rent-display').value = '';
+            document.getElementById('prop-contract-type').value = '';
+            document.getElementById('prop-contract-years').value = '';
+            document.getElementById('prop-print-remarks').value = '';
+
             toggleBrokerFields();
 
             switchView('detail');
@@ -1533,6 +1717,12 @@
             document.getElementById('prop-planning-fee').value = p.planningFee !== undefined ? p.planningFee : '0';
             toggleBrokerFields();
 
+            // Inject PDF print specs
+            document.getElementById('prop-rent-display').value = p.rentDisplay || '';
+            document.getElementById('prop-contract-type').value = p.contractType || '';
+            document.getElementById('prop-contract-years').value = p.contractYears || '';
+            document.getElementById('prop-print-remarks').value = p.printRemarks || '';
+
             const visitsContainer = document.getElementById('visits-container');
             visitsContainer.innerHTML = "";
             if (p.visits && p.visits.length > 0) {
@@ -1559,19 +1749,16 @@
 
         // Detailed Map Interactive Initializer
         function initOrUpdateDetailMap(lat, lng) {
-            // Leaflet requires container to be visible during map generation
             if (!detailMap) {
                 detailMap = L.map('detail-map').setView([lat || 35.681236, lng || 139.767125], lat && lng ? 15 : 10);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap'
                 }).addTo(detailMap);
 
-                // Instantly update pin on map clicks
                 detailMap.on('click', function(e) {
                     updateDetailMarkerAndCoords(e.latlng.lat, e.latlng.lng, true);
                 });
             } else {
-                // Resize check for container visibility
                 setTimeout(() => {
                     detailMap.invalidateSize();
                     if (lat && lng) {
@@ -1580,7 +1767,6 @@
                 }, 100);
             }
 
-            // Sync marker representation
             if (lat && lng) {
                 updateDetailMarkerAndCoords(lat, lng, false);
             } else {
@@ -1607,7 +1793,6 @@
                     draggable: true
                 }).addTo(detailMap);
 
-                // Handle drag events
                 detailMarker.on('dragend', function() {
                     const position = detailMarker.getLatLng();
                     updateDetailMarkerAndCoords(position.lat, position.lng, true);
@@ -1649,7 +1834,7 @@
                 }
             }
 
-            const cleanChiban = address.replace(/[0-9０-９]+番地?.*$/, '');
+            const cleanChiban = address.replace(/[0-9手０-９]+番地?.*$/, '');
             if (cleanChiban !== address && cleanChiban.length > 5 && !searchQueries.includes(cleanChiban)) {
                 searchQueries.push(cleanChiban);
             }
@@ -1674,9 +1859,10 @@
 
             for (const query of searchQueries) {
                 try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
-                    if (response.ok) {
-                        const data = await response.json();
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
                         if (data && data.length > 0) {
                             const result = data[0];
                             const lat = parseFloat(result.lat);
@@ -1688,7 +1874,6 @@
                             success = true;
                             matchedQuery = query;
                             
-                            // Instantly refresh interactive map
                             initOrUpdateDetailMap(lat, lng);
                             break; 
                         }
@@ -1735,7 +1920,7 @@
                     showToast("過去バージョンの物件データをインポートしました。", "success");
                     closeExportModal();
                 } else {
-                    showToast("JSONデータが本システム専用의構成ではありません。", "danger");
+                    showToast("JSONデータが本システム専用の構成ではありません。", "danger");
                 }
             } catch(e) {
                 showToast("貼り付けられたコードに不備（余分なスペースや文字の欠落）があります。正しいJSONをご確認ください。", "danger");
@@ -1762,123 +1947,6 @@
             textarea.select();
             document.execCommand('copy');
             showToast("JSONデータをクリップボードにコピーしました！", "success");
-        }
-
-        function handleFormSubmit(event) {
-            event.preventDefault();
-
-            const id = document.getElementById('prop-id').value;
-            const name = document.getElementById('prop-name').value.trim();
-            const type = document.getElementById('prop-type').value;
-            const rank = document.getElementById('prop-rank').value;
-            const address = document.getElementById('prop-address').value.trim();
-            const chiban = document.getElementById('prop-chiban').value.trim();
-            const area = parseFloat(document.getElementById('prop-area').value) || null;
-            const buildingArea = parseFloat(document.getElementById('prop-building-area').value) || null;
-            const zone = document.getElementById('prop-zone').value.trim();
-            const confirmDate = document.getElementById('prop-confirm-date').value;
-            
-            const latVal = document.getElementById('prop-lat').value;
-            const lngVal = document.getElementById('prop-lng').value;
-            const lat = latVal ? parseFloat(latVal) : null;
-            const lng = lngVal ? parseFloat(lngVal) : null;
-
-            const landownersVal = document.getElementById('prop-landowners').value;
-            const landowners = landownersVal.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-
-            const mortgageRadios = document.getElementsByName('prop-mortgage');
-            let mortgage = false;
-            mortgageRadios.forEach(radio => {
-                if (radio.checked && radio.value === 'yes') mortgage = true;
-            });
-
-            const consent = document.getElementById('prop-consent').value;
-            const terms = document.getElementById('prop-terms').value.trim();
-
-            // Retrieve Broker specs
-            const hasBroker = document.getElementById('prop-has-broker').value;
-            const brokerName = document.getElementById('prop-broker-name').value.trim();
-            const brokerContact = document.getElementById('prop-broker-contact').value.trim();
-            const brokerFee = parseInt(document.getElementById('prop-broker-fee').value) || 0;
-            const planningFee = parseInt(document.getElementById('prop-planning-fee').value) || 0;
-
-            const visitElements = document.getElementById('visits-container').children;
-            const visits = [];
-            for (let el of visitElements) {
-                const date = el.querySelector('.visit-date').value;
-                const detail = el.querySelector('.visit-detail').value.trim();
-                if (date && detail) {
-                    visits.push({ date, detail });
-                }
-            }
-            visits.sort((a,b) => new Date(a.date) - new Date(b.date));
-
-            const tenantElements = document.getElementById('tenants-container').children;
-            const tenants = [];
-            for (let el of tenantElements) {
-                const tName = el.querySelector('.tenant-name').value.trim();
-                const feel = el.querySelector('.tenant-feel').value;
-                const application = el.querySelector('.tenant-app').value;
-                if (tName) {
-                    tenants.push({ name: tName, feel, application });
-                }
-            }
-
-            if (!id) {
-                const newId = `prop-${Date.now()}`;
-                const newProp = {
-                    id: newId,
-                    name, type, rank, address, chiban, area, buildingArea, zone, confirmDate,
-                    landowners, mortgage, consent, terms, visits, tenants, lat, lng,
-                    hasBroker, brokerName, brokerContact, brokerFee, planningFee,
-                    createdAt: new Date().toISOString()
-                };
-                properties.push(newProp);
-                showToast("物件推進カルテを新規に立ち上げました。", "success");
-            } else {
-                const idx = properties.findIndex(p => p.id === id);
-                if (idx !== -1) {
-                    properties[idx] = {
-                        ...properties[idx],
-                        name, type, rank, address, chiban, area, buildingArea, zone, confirmDate,
-                        landowners, mortgage, consent, terms, visits, tenants, lat, lng,
-                        hasBroker, brokerName: hasBroker === 'yes' ? brokerName : '',
-                        brokerContact: hasBroker === 'yes' ? brokerContact : '',
-                        brokerFee, planningFee
-                    };
-                    showToast("物件推進データおよびテナントDBを更新しました。", "success");
-                }
-            }
-
-            saveData();
-            switchView(previousView);
-        }
-
-        // Custom confirmation dialogue logic
-        function triggerDeleteProperty() {
-            const id = document.getElementById('prop-id').value;
-            if (!id) return;
-
-            const p = properties.find(item => item.id === id);
-            if (!p) return;
-
-            callConfirm(
-                "物件推進計画の削除", 
-                `「${p.name}」に関する地権者情報・面談履歴・想定テナント連動データ・仲介業者登録内容を含む、データベース上のすべてのレコードが完全に抹消されます。本当に削除してよろしいですか？`, 
-                function() {
-                    properties = properties.filter(item => item.id !== id);
-                    saveData();
-                    showToast("物件交渉推進データを完全に削除しました。", "warning");
-                    switchView(previousView);
-                }
-            );
-        }
-
-        // Manual Tenant DB Form Handling
-        function openNewTenantModal() {
-            document.getElementById('tenant-form').reset();
-            document.getElementById('manual-tenant-id').value = "";
-            document.getElementById('tenant-modal').classList.remove('hidden');
         }
 
         function openEditTenantModal(tenantId) {
@@ -2014,11 +2082,466 @@
                     showToast("指定された保存先へデータを保存（上書き）しました！", "success");
                     return;
                 } catch (err) {
-                    // Ignore user aborting the picker
                     if (err.name === 'AbortError') {
                         return;
                     }
-                    console.warn("showSaveFilePicker failed or blocked inside context, using standard Blob download fallback:", err);
+                    console.warn("showSaveFilePicker failed, using standard Blob download fallback:", err);
+                }
+            }
+
+            // 2. Try Web Share API (Especially great for iPhone Safari to allow user to pick Drive/Files directory)
+            if (navigator.share && navigator.canShare) {
+                try {
+                    const file = new File([jsonStr], fileName, { type: "application/json" });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: '物件開発DB バックアップ',
+                            text: 'Googleドライブやファイルアプリの任意のフォルダに直接上書きまたは新規保存できます。'
+                        });
+                        showToast("保存・共有用ダイアログを起動しました。保存先フォルダを選択してください。", "success");
+                        return;
+                    }
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.warn("Web Share API failed, falling back:", err);
+                    } else {
+                        return; // User cancelled
+                    }
+                }
+            }
+
+            // 3. Fallback Blob download (Firefox, Older Browsers, and sandboxed iframes)
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("バックアップファイルをエクスポートしました。ブラウザのダウンロードフォルダに保存されました。上書きする場合は、ドライブ等の保存先選択画面で同一のファイルを上書き指定してください。", "success");
+        }
+
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.properties && Array.isArray(parsed.properties)) {
+                        properties = parsed.properties;
+                        manualTenants = parsed.manualTenants || [];
+                        saveData();
+                        switchView('dashboard');
+                        showToast("外部ファイルからデータを正常に復元しました！", "success");
+                        closeExportModal();
+                    } else if (Array.isArray(parsed)) {
+                        properties = parsed;
+                        manualTenants = [];
+                        saveData();
+                        switchView('dashboard');
+                        showToast("以前の物件データを正常に復元しました。", "success");
+                        closeExportModal();
+                    } else {
+                        showToast("非対応のバックアップファイルです。", "danger");
+                    }
+                } catch(err) {
+                    showToast("JSONの読み込みに失敗しました。ファイルを確認してください。", "danger");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ==================== NEW specs: Print layout direct inputs ====================
+        function goBackFromDetail() {
+            switchView(previousView);
+        }
+
+        // ==================== GENERATE BROKER OUTLINE SHEET (A4 Landscape Print) ====================
+        function generateBrokerPDF() {
+            const id = document.getElementById('prop-id').value;
+            const name = document.getElementById('prop-name').value.trim();
+            const address = document.getElementById('prop-address').value.trim();
+            const type = document.getElementById('prop-type').value;
+            const chiban = document.getElementById('prop-chiban').value.trim();
+            const zone = document.getElementById('prop-zone').value.trim();
+            
+            const areaVal = parseFloat(document.getElementById('prop-area').value) || 0;
+            const landAreaTsubo = (areaVal * 0.3025).toFixed(1);
+            
+            const buildingAreaVal = parseFloat(document.getElementById('prop-building-area').value) || 0;
+            const buildingTsubo = (buildingAreaVal * 0.3025).toFixed(1);
+
+            // PDF Print inputs
+            const rentVal = document.getElementById('prop-rent-display').value.trim() || "協議の上決定 (経済条件による)";
+            const contractType = document.getElementById('prop-contract-type').value.trim() || type;
+            const contractYears = document.getElementById('prop-contract-years').value.trim() || "--";
+            const printRemarks = document.getElementById('prop-print-remarks').value.trim() || "特記すべき備考は現在ありません。開発推進中のため、詳細条件交渉は直接お問い合わせください。";
+
+            const latVal = document.getElementById('prop-lat').value;
+            const lngVal = document.getElementById('prop-lng').value;
+            const lat = latVal ? parseFloat(latVal) : null;
+            const lng = lngVal ? parseFloat(lngVal) : null;
+
+            // 1. Inject texts into Print HTML sheet
+            document.getElementById('print-prop-id').innerText = id || 'NEW';
+            document.getElementById('print-prop-name').innerText = name || '名称未設定の物件開発計画';
+            document.getElementById('print-prop-address').innerText = address || '住所情報がありません';
+            document.getElementById('print-prop-land-area').innerText = areaVal > 0 ? `${areaVal.toLocaleString()} ㎡ (${landAreaTsubo} 坪)` : '未登録';
+            document.getElementById('print-prop-floor-area').innerText = buildingAreaVal > 0 ? `${buildingAreaVal.toLocaleString()} ㎡ (${buildingTsubo} 坪)` : '未登録';
+            document.getElementById('print-prop-rent').innerText = rentVal;
+            document.getElementById('print-prop-contract').innerText = contractType;
+            document.getElementById('print-prop-years').innerText = contractYears;
+            document.getElementById('print-prop-remarks').innerText = printRemarks;
+
+            // Sub Specs Fallback text
+            document.getElementById('print-specs-fallback').innerText = `地番: ${chiban || '未特定'}  /  用途地域区分: ${zone || '未指定'}  /  開発重要度: ランク ${document.getElementById('prop-rank').value}`;
+
+            // Add Output Date Stamp
+            const today = new Date();
+            document.getElementById('print-timestamp').innerText = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+
+            // 2. Initialize or Update print-only Leaflet Map
+            if (lat && lng) {
+                // Remove previous print map if exists
+                if (printMap) {
+                    printMap.remove();
+                    printMap = null;
+                }
+                
+                // Show temporarily to bind map correctly
+                document.getElementById('print-sheet').style.display = 'block';
+
+                printMap = L.map('print-map', {
+                    zoomControl: false,
+                    attributionControl: false
+                }).setView([lat, lng], 15);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(printMap);
+
+                // Add non-draggable circle or point icon
+                const customIcon = L.divIcon({
+                    html: `
+                        <div class="relative flex items-center justify-center">
+                            <span class="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-brand-500 opacity-40"></span>
+                            <div class="relative rounded-full bg-brand-500 text-white flex items-center justify-center shadow-lg border-2 border-white w-6 h-6 text-[10px] font-black">
+                                ★
+                            </div>
+                        </div>
+                    `,
+                    className: 'print-marker',
+                    iconSize: [24, 28],
+                    iconAnchor: [12, 14]
+                });
+                
+                L.marker([lat, lng], { icon: customIcon }).addTo(printMap);
+
+                // Instantly invalidate size
+                setTimeout(() => {
+                    printMap.invalidateSize();
+                    // 3. Fire Native Browser Print Engine
+                    window.print();
+                    
+                    // Hide after printing completes
+                    document.getElementById('print-sheet').style.display = 'none';
+                }, 350);
+            } else {
+                showToast("物件の緯度経度が設定されていません。プロット検索を行った後にPDF印刷してください。", "warning");
+            }
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('prop-id').value;
+            const name = document.getElementById('prop-name').value.trim();
+            const type = document.getElementById('prop-type').value;
+            const rank = document.getElementById('prop-rank').value;
+            const address = document.getElementById('prop-address').value.trim();
+            const chiban = document.getElementById('prop-chiban').value.trim();
+            const area = parseFloat(document.getElementById('prop-area').value) || null;
+            const buildingArea = parseFloat(document.getElementById('prop-building-area').value) || null;
+            const zone = document.getElementById('prop-zone').value.trim();
+            const confirmDate = document.getElementById('prop-confirm-date').value;
+            
+            const latVal = document.getElementById('prop-lat').value;
+            const lngVal = document.getElementById('prop-lng').value;
+            const lat = latVal ? parseFloat(latVal) : null;
+            const lng = lngVal ? parseFloat(lngVal) : null;
+
+            const landownersVal = document.getElementById('prop-landowners').value;
+            const landowners = landownersVal.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            const mortgageRadios = document.getElementsByName('prop-mortgage');
+            let mortgage = false;
+            mortgageRadios.forEach(radio => {
+                if (radio.checked && radio.value === 'yes') mortgage = true;
+            });
+
+            const consent = document.getElementById('prop-consent').value;
+            const terms = document.getElementById('prop-terms').value.trim();
+
+            // Retrieve Broker specs
+            const hasBroker = document.getElementById('prop-has-broker').value;
+            const brokerName = document.getElementById('prop-broker-name').value.trim();
+            const brokerContact = document.getElementById('prop-broker-contact').value.trim();
+            const brokerFee = parseInt(document.getElementById('prop-broker-fee').value) || 0;
+            const planningFee = parseInt(document.getElementById('prop-planning-fee').value) || 0;
+
+            // PDF Print inputs retrieve
+            const rentDisplay = document.getElementById('prop-rent-display').value.trim();
+            const contractType = document.getElementById('prop-contract-type').value.trim();
+            const contractYears = document.getElementById('prop-contract-years').value.trim();
+            const printRemarks = document.getElementById('prop-print-remarks').value.trim();
+
+            const visitElements = document.getElementById('visits-container').children;
+            const visits = [];
+            for (let el of visitElements) {
+                const date = el.querySelector('.visit-date').value;
+                const detail = el.querySelector('.visit-detail').value.trim();
+                if (date && detail) {
+                    visits.push({ date, detail });
+                }
+            }
+            visits.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            const tenantElements = document.getElementById('tenants-container').children;
+            const tenants = [];
+            for (let el of tenantElements) {
+                const tName = el.querySelector('.tenant-name').value.trim();
+                const feel = el.querySelector('.tenant-feel').value;
+                const application = el.querySelector('.tenant-app').value;
+                if (tName) {
+                    tenants.push({ name: tName, feel, application });
+                }
+            }
+
+            if (!id) {
+                const newId = `prop-${Date.now()}`;
+                const newProp = {
+                    id: newId,
+                    name, type, rank, address, chiban, area, buildingArea, zone, confirmDate,
+                    landowners, mortgage, consent, terms, visits, tenants, lat, lng,
+                    hasBroker, brokerName, brokerContact, brokerFee, planningFee,
+                    rentDisplay, contractType, contractYears, printRemarks,
+                    createdAt: new Date().toISOString()
+                };
+                properties.push(newProp);
+                showToast("物件推進カルテを新規に立ち上げました。", "success");
+            } else {
+                const idx = properties.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    properties[idx] = {
+                        ...properties[idx],
+                        name, type, rank, address, chiban, area, buildingArea, zone, confirmDate,
+                        landowners, mortgage, consent, terms, visits, tenants, lat, lng,
+                        hasBroker, brokerName: hasBroker === 'yes' ? brokerName : '',
+                        brokerContact: hasBroker === 'yes' ? brokerContact : '',
+                        brokerFee, planningFee,
+                        rentDisplay, contractType, contractYears, printRemarks
+                    };
+                    showToast("物件推進データおよびテナントDBを更新しました。", "success");
+                }
+            }
+
+            saveData();
+            switchView(previousView);
+        }
+
+        // Custom confirmation dialogue logic
+        function triggerDeleteProperty() {
+            const id = document.getElementById('prop-id').value;
+            if (!id) return;
+
+            const p = properties.find(item => item.id === id);
+            if (!p) return;
+
+            callConfirm(
+                "物件推進計画の削除", 
+                `「${p.name}」に関する地権者情報・面談履歴・想定テナント連動データ・仲介業者登録内容を含む、データベース上のすべてのレコードが完全に抹消されます。本当に削除してよろしいですか？`, 
+                function() {
+                    properties = properties.filter(item => item.id !== id);
+                    saveData();
+                    showToast("物件交渉推進データを完全に削除しました。", "warning");
+                    switchView(previousView);
+                }
+            );
+        }
+
+        // Manual Tenant DB Form Handling
+        function openNewTenantModal() {
+            document.getElementById('tenant-form').reset();
+            document.getElementById('manual-tenant-id').value = "";
+            document.getElementById('tenant-modal').classList.remove('hidden');
+        }
+
+        // JSON Export Modal Control Handlers
+        function openExportModal() {
+            const stateExport = {
+                properties: properties,
+                manualTenants: manualTenants
+            };
+            const jsonStr = JSON.stringify(stateExport, null, 2);
+            document.getElementById('export-data-json').value = jsonStr;
+            document.getElementById('export-modal').classList.remove('hidden');
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.add('hidden');
+        }
+
+        function copyExportJson() {
+            const textarea = document.getElementById('export-data-json');
+            textarea.select();
+            document.execCommand('copy');
+            showToast("JSONデータをクリップボードにコピーしました！", "success");
+        }
+
+        function openEditTenantModal(tenantId) {
+            const t = manualTenants.find(item => item.id === tenantId);
+            if (!t) return;
+
+            document.getElementById('manual-tenant-id').value = t.id;
+            document.getElementById('m-tenant-name').value = t.name;
+            document.getElementById('m-tenant-type').value = t.type || "その他";
+            document.getElementById('m-tenant-area').value = t.areaName;
+            document.getElementById('m-tenant-size').value = t.sizeM2 || "";
+            document.getElementById('m-tenant-tsubo').value = t.sizeTsubo || "";
+            document.getElementById('m-tenant-feel').value = t.feel || "B";
+            document.getElementById('m-tenant-app').value = t.application || "未受領";
+
+            document.getElementById('tenant-modal').classList.remove('hidden');
+        }
+
+        function closeTenantModal() {
+            document.getElementById('tenant-modal').classList.add('hidden');
+        }
+
+        function handleTenantSubmit(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('manual-tenant-id').value;
+            const name = document.getElementById('m-tenant-name').value.trim();
+            const type = document.getElementById('m-tenant-type').value;
+            const areaName = document.getElementById('m-tenant-area').value.trim();
+            const sizeM2 = parseFloat(document.getElementById('m-tenant-size').value) || null;
+            const sizeTsubo = parseFloat(document.getElementById('m-tenant-tsubo').value) || null;
+            const feel = document.getElementById('m-tenant-feel').value;
+            const application = document.getElementById('m-tenant-app').value;
+
+            if (!id) {
+                const newT = {
+                    id: `manual-ten-${Date.now()}`,
+                    name, type, areaName, sizeM2, sizeTsubo, feel, application,
+                    isManual: true
+                };
+                manualTenants.push(newT);
+                showToast("希望テナント情報をデータベースへ手動登録しました。", "success");
+            } else {
+                const idx = manualTenants.findIndex(item => item.id === id);
+                if (idx !== -1) {
+                    manualTenants[idx] = {
+                        ...manualTenants[idx],
+                        name, type, areaName, sizeM2, sizeTsubo, feel, application
+                    };
+                    showToast("テナントデータベースの情報を更新しました。", "success");
+                }
+            }
+
+            saveData();
+            renderTenantDatabase();
+            closeTenantModal();
+        }
+
+        // Custom confirmation dialogue logic for manual tenant delete
+        function triggerDeleteManualTenant(tenantId) {
+            const t = manualTenants.find(item => item.id === tenantId);
+            if (!t) return;
+
+            callConfirm(
+                "登録テナントの削除", 
+                `直接手動登録された「${t.name}」の希望要件レコードをテナントDBから永久に削除します。よろしいですか？`, 
+                function() {
+                    manualTenants = manualTenants.filter(item => item.id !== tenantId);
+                    saveData();
+                    renderTenantDatabase();
+                    showToast("データベースから該当テナントを削除しました。", "warning");
+                }
+            );
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msgEl = document.getElementById('toast-message');
+
+            msgEl.innerText = message;
+            
+            let iconMarkup = '<i data-lucide="info" class="w-4 h-4 text-sky-400"></i>';
+            if (type === 'success') {
+                iconMarkup = '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>';
+                toast.className = "fixed bottom-5 right-5 bg-slate-900 text-slate-100 border border-emerald-800 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50 transition duration-150";
+            } else if (type === 'warning') {
+                iconMarkup = '<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>';
+                toast.className = "fixed bottom-5 right-5 bg-slate-900 text-slate-100 border border-amber-800 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50 transition duration-150";
+            } else if (type === 'danger') {
+                iconMarkup = '<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i>';
+                toast.className = "fixed bottom-5 right-5 bg-slate-900 text-slate-100 border border-rose-800 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50 transition duration-150";
+            } else {
+                toast.className = "fixed bottom-5 right-5 bg-slate-900 text-slate-100 border border-slate-800 px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50 transition duration-150";
+            }
+
+            icon.innerHTML = iconMarkup;
+            lucide.createIcons();
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Backup Export & File System Access API
+        async function downloadBackupFile() {
+            const stateExport = {
+                properties: properties,
+                manualTenants: manualTenants
+            };
+            const jsonStr = JSON.stringify(stateExport, null, 2);
+            const dateStr = new Date().toISOString().substring(0, 10);
+            const fileName = `物件開発DB_バックアップ_${dateStr}.json`;
+
+            // 1. Try modern File System Access API if supported (PC Chrome, Edge, etc.)
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const options = {
+                        suggestedName: fileName,
+                        types: [{
+                            description: 'JSON Backup Files',
+                            accept: {
+                                'application/json': ['.json'],
+                            },
+                        }],
+                    };
+                    const handle = await window.showSaveFilePicker(options);
+                    const writable = await handle.createWritable();
+                    await writable.write(jsonStr);
+                    await writable.close();
+                    showToast("指定された保存先へデータを保存（上書き）しました！", "success");
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        return;
+                    }
+                    console.warn("showSaveFilePicker failed, using standard Blob download fallback:", err);
                 }
             }
 
