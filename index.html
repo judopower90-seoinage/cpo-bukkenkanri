@@ -32,7 +32,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Leaflet CSS & JS for Map -->
-    <link class="leaflet-css" rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         #map {
@@ -344,7 +344,7 @@
                                 </div>
                                 <div>
                                     <label class="block font-bold text-slate-600 mb-1">物件種別 <span class="text-rose-500">*</span></label>
-                                    <select id="prop-type" required class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
+                                    <select id="prop-type" required class="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 font-bold">
                                         <option value="建て貸し">建て貸し</option>
                                         <option value="居抜き">居抜き</option>
                                         <option value="借地">借地</option>
@@ -406,6 +406,7 @@
                                         <input type="number" step="0.000001" id="prop-lng" oninput="updateDetailMapFromInputs()" class="w-full px-2 py-1 text-[10px] bg-white border border-slate-200 rounded">
                                     </div>
                                 </div>
+                                <div></div>
 
                                 <!-- Mini map container for interactive positioning -->
                                 <div class="sm:col-span-3">
@@ -626,7 +627,7 @@
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col my-8">
             <div class="px-5 py-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
                 <h3 class="text-xs font-bold tracking-wider uppercase flex items-center gap-2">
-                    <i data-lucide="cloud" class="w-4 h-4 text-brand-400"></i>  クラウド同期・バックアップ管理
+                    <i data-lucide="cloud" class="w-4 h-4 text-brand-400"></i> クラウド同期・バックアップ管理
                 </h3>
                 <button onclick="closeExportModal()" class="text-slate-400 hover:text-white transition">
                     <i data-lucide="x" class="w-6 h-6"></i>
@@ -718,12 +719,6 @@
         </div>
     </div>
 
-    <!-- Toast Alerts -->
-    <div id="toast" class="hidden fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-2.5 z-50">
-        <span id="toast-icon"></span>
-        <span id="toast-message" class="text-xs font-bold">メッセージ</span>
-    </div>
-
     <script>
         // Default Mock Datasets
         const defaultProperties = [
@@ -796,7 +791,7 @@
                 address: "神奈川県平塚市河内350-1",
                 chiban: "河内字上原350番",
                 area: 850.5,
-                buildingArea: 420.0,
+                buildingArea: 0,
                 zone: "ロードサイド商業",
                 landowners: ["高橋 義雄 (地元地主)"],
                 mortgage: false,
@@ -863,19 +858,33 @@
 
         // Initialize App
         window.onload = function() {
-            // Load DB
+            // Load DB with safe error bounds
             const storedProps = localStorage.getItem('s_dev_properties_v2');
             const storedManualTenants = localStorage.getItem('s_dev_manual_tenants_v2');
 
             if (storedProps) {
-                try { properties = JSON.parse(storedProps); } catch(e) { properties = [...defaultProperties]; }
+                try { 
+                    properties = JSON.parse(storedProps); 
+                    // Validate data arrays inside properties
+                    properties.forEach(p => {
+                        if (!p.visits) p.visits = [];
+                        if (!p.tenants) p.tenants = [];
+                        if (p.mortgage === undefined) p.mortgage = false;
+                    });
+                } catch(e) { 
+                    properties = [...defaultProperties]; 
+                }
             } else {
                 properties = [...defaultProperties];
                 saveData();
             }
 
             if (storedManualTenants) {
-                try { manualTenants = JSON.parse(storedManualTenants); } catch(e) { manualTenants = [...defaultManualTenants]; }
+                try { 
+                    manualTenants = JSON.parse(storedManualTenants); 
+                } catch(e) { 
+                    manualTenants = [...defaultManualTenants]; 
+                }
             } else {
                 manualTenants = [...defaultManualTenants];
                 saveData();
@@ -942,11 +951,14 @@
 
             const statsWidget = document.getElementById('stats-widget');
 
-            Object.values(sections).forEach(sec => sec.classList.add('hidden'));
+            Object.values(sections).forEach(sec => {
+                if (sec) sec.classList.add('hidden');
+            });
 
             const navIds = ['nav-dashboard', 'nav-list', 'nav-tenant-db'];
             navIds.forEach(id => {
                 const el = document.getElementById(id);
+                if (!el) return;
                 if (id === `nav-${viewName}`) {
                     el.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-800 text-brand-400";
                 } else {
@@ -955,21 +967,21 @@
             });
 
             if (viewName === 'dashboard') {
-                sections['dashboard'].classList.remove('hidden');
-                statsWidget.classList.remove('hidden');
+                if (sections['dashboard']) sections['dashboard'].classList.remove('hidden');
+                if (statsWidget) statsWidget.classList.remove('hidden');
                 setTimeout(() => { map.invalidateSize(); }, 80);
                 filterProperties();
             } else if (viewName === 'list') {
-                sections['list'].classList.remove('hidden');
-                statsWidget.classList.remove('hidden');
+                if (sections['list']) sections['list'].classList.remove('hidden');
+                if (statsWidget) statsWidget.classList.remove('hidden');
                 renderList();
             } else if (viewName === 'tenant-db') {
-                sections['tenant-db'].classList.remove('hidden');
-                statsWidget.classList.remove('hidden');
+                if (sections['tenant-db']) sections['tenant-db'].classList.remove('hidden');
+                if (statsWidget) statsWidget.classList.remove('hidden');
                 renderTenantDatabase();
             } else if (viewName === 'detail') {
-                sections['detail'].classList.remove('hidden');
-                statsWidget.classList.add('hidden');
+                if (sections['detail']) sections['detail'].classList.remove('hidden');
+                if (statsWidget) statsWidget.classList.add('hidden');
             }
 
             renderStats();
@@ -984,18 +996,24 @@
             
             let appliedCount = 0;
             properties.forEach(p => {
-                if (p.tenants) {
-                    p.tenants.forEach(t => { if (t.application === '受領') appliedCount++; });
-                }
+                const pTenants = p.tenants || [];
+                pTenants.forEach(t => { 
+                    if (t && t.application === '受領') appliedCount++; 
+                });
             });
             manualTenants.forEach(mt => {
-                if (mt.application === '受領') appliedCount++;
+                if (mt && mt.application === '受領') appliedCount++;
             });
 
-            document.getElementById('stat-total').innerText = total;
-            document.getElementById('stat-consent').innerText = consent;
-            document.getElementById('stat-rank-a').innerText = rankA;
-            document.getElementById('stat-applied').innerText = appliedCount;
+            const statTotalEl = document.getElementById('stat-total');
+            const statConsentEl = document.getElementById('stat-consent');
+            const statRankAEl = document.getElementById('stat-rank-a');
+            const statAppliedEl = document.getElementById('stat-applied');
+
+            if (statTotalEl) statTotalEl.innerText = total;
+            if (statConsentEl) statConsentEl.innerText = consent;
+            if (statRankAEl) statRankAEl.innerText = rankA;
+            if (statAppliedEl) statAppliedEl.innerText = appliedCount;
         }
 
         // Local Storage Sync
@@ -1016,36 +1034,37 @@
 
             // 1. Process automatic ones from properties
             properties.forEach(p => {
-                if (p.tenants && p.tenants.length > 0) {
-                    p.tenants.forEach((t, index) => {
-                        tenantDatabase.push({
-                            id: `auto-${p.id}-${index}`,
-                            name: t.name,
-                            type: p.type || "その他", // Automatic matching type
-                            areaName: extractArea(p.address),
-                            sizeM2: p.area || 0,
-                            sizeTsubo: p.area ? parseFloat((p.area * 0.3025).toFixed(1)) : 0,
-                            feel: t.feel,
-                            application: t.application,
-                            isManual: false,
-                            sourcePropertyId: p.id,
-                            sourcePropertyName: p.name
-                        });
+                const pTenants = p.tenants || [];
+                pTenants.forEach((t, index) => {
+                    if (!t) return;
+                    tenantDatabase.push({
+                        id: `auto-${p.id}-${index}`,
+                        name: t.name || "名称未設定テナント",
+                        type: p.type || "その他", // Automatic matching type
+                        areaName: extractArea(p.address),
+                        sizeM2: p.area || 0,
+                        sizeTsubo: p.area ? parseFloat((p.area * 0.3025).toFixed(1)) : 0,
+                        feel: t.feel || "B",
+                        application: t.application || "未受領",
+                        isManual: false,
+                        sourcePropertyId: p.id,
+                        sourcePropertyName: p.name || "名称未設定物件"
                     });
-                }
+                });
             });
 
             // 2. Process manual ones
             manualTenants.forEach(mt => {
+                if (!mt) return;
                 tenantDatabase.push({
                     id: mt.id,
-                    name: mt.name,
+                    name: mt.name || "名称未設定テナント",
                     type: mt.type || "その他",
-                    areaName: mt.areaName,
+                    areaName: mt.areaName || "未設定",
                     sizeM2: mt.sizeM2 || 0,
                     sizeTsubo: mt.sizeTsubo || (mt.sizeM2 ? parseFloat((mt.sizeM2 * 0.3025).toFixed(1)) : 0),
-                    feel: mt.feel,
-                    application: mt.application,
+                    feel: mt.feel || "B",
+                    application: mt.application || "未受領",
                     isManual: true,
                     sourcePropertyId: null,
                     sourcePropertyName: null
@@ -1059,6 +1078,7 @@
             const tsuboVal = (m2Val * 0.3025).toFixed(1);
             
             const target = document.getElementById(tsuboTargetId);
+            if (!target) return;
             if (target.tagName === 'INPUT') {
                 target.value = m2Val > 0 ? tsuboVal : "";
             } else {
@@ -1071,6 +1091,7 @@
             const m2Val = (tsuboVal / 0.3025).toFixed(1);
 
             const target = document.getElementById(m2TargetId);
+            if (!target) return;
             if (target.tagName === 'INPUT') {
                 target.value = tsuboVal > 0 ? m2Val : "";
             }
@@ -1093,7 +1114,7 @@
                             <div class="relative flex items-center justify-center">
                                 <span class="animate-pulse absolute inline-flex h-6 w-6 rounded-full opacity-30" style="background-color: ${color}"></span>
                                 <div class="relative rounded-full text-white flex items-center justify-center shadow-md border-2 border-white w-7 h-7 text-[10px] font-black" style="background-color: ${color}">
-                                    ${p.rank}
+                                    ${p.rank || 'C'}
                                 </div>
                             </div>
                         `,
@@ -1107,11 +1128,11 @@
                     const popupContent = `
                         <div class="p-1.5 font-sans text-xs max-w-[200px]">
                             <div class="flex items-center gap-1 mb-1">
-                                <span class="px-1 text-[9px] font-bold bg-slate-900 text-white rounded">${p.rank}ランク</span>
-                                <span class="px-1 text-[9px] font-bold ${p.consent === '承諾済' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} rounded">${p.consent}</span>
+                                <span class="px-1 text-[9px] font-bold bg-slate-900 text-white rounded">${p.rank || 'C'}ランク</span>
+                                <span class="px-1 text-[9px] font-bold ${p.consent === '承諾済' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'} rounded">${p.consent || '未承諾'}</span>
                             </div>
-                            <h4 class="font-bold text-slate-900 mb-0.5 leading-snug">${p.name}</h4>
-                            <p class="text-[10px] text-slate-500 mb-2 truncate">${p.address}</p>
+                            <h4 class="font-bold text-slate-900 mb-0.5 leading-snug">${p.name || '名称未設定'}</h4>
+                            <p class="text-[10px] text-slate-500 mb-2 truncate">${p.address || ''}</p>
                             <button onclick="openEditPropertyView('${p.id}')" class="w-full text-center py-1 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded text-[10px] transition">
                                 詳細・カルテを表示
                             </button>
@@ -1135,10 +1156,11 @@
             const rankVal = document.getElementById('filter-rank').value;
 
             const filtered = properties.filter(p => {
+                if (!p) return false;
                 const landownersStr = (p.landowners || []).join(' ').toLowerCase();
                 const matchesSearch = !searchVal || 
-                                     p.name.toLowerCase().includes(searchVal) || 
-                                     p.address.toLowerCase().includes(searchVal) || 
+                                     (p.name && p.name.toLowerCase().includes(searchVal)) || 
+                                     (p.address && p.address.toLowerCase().includes(searchVal)) || 
                                      landownersStr.includes(searchVal);
                 
                 const matchesType = !typeVal || p.type === typeVal;
@@ -1147,7 +1169,8 @@
                 return matchesSearch && matchesType && matchesRank;
             });
 
-            document.getElementById('filter-count').innerText = `表示 ${filtered.length} 件`;
+            const filterCountEl = document.getElementById('filter-count');
+            if (filterCountEl) filterCountEl.innerText = `表示 ${filtered.length} 件`;
 
             renderDashboardMiniList(filtered);
             updateMapMarkers(filtered);
@@ -1156,6 +1179,7 @@
         // Mini Card Renderer
         function renderDashboardMiniList(props) {
             const container = document.getElementById('properties-list');
+            if (!container) return;
             container.innerHTML = '';
 
             if (props.length === 0) {
@@ -1170,26 +1194,27 @@
             }
 
             props.forEach(p => {
+                if (!p) return;
                 const areaTsubo = p.area ? (p.area * 0.3025).toFixed(1) : '0.0';
                 const rankColor = p.rank === 'A' ? 'bg-amber-50 border-amber-200 text-amber-800' : p.rank === 'B' ? 'bg-brand-50 border-brand-100 text-brand-800' : 'bg-slate-100 border-slate-200 text-slate-600';
                 const consentStyle = p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100';
 
                 const html = `
-                    <div onclick="openEditPropertyView('${p.id}')" class="bg-white hover:bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 transition cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs hover:shadow-xs">
+                    <div onclick="openEditPropertyView('${p.id}')" class="bg-white hover:bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 transition cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs hover:shadow-xs animate-in fade-in duration-100">
                         <div class="space-y-1.5 flex-grow min-w-0">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="text-[9px] font-extrabold border px-1.5 py-0.5 rounded ${rankColor}">ランク ${p.rank}</span>
-                                <span class="text-[9px] font-extrabold border px-1.5 py-0.5 rounded ${consentStyle}">${p.consent}</span>
-                                <span class="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">${p.type}</span>
-                                <h3 class="text-xs font-bold text-slate-800 truncate">${p.name}</h3>
+                                <span class="text-[9px] font-extrabold border px-1.5 py-0.5 rounded ${rankColor}">ランク ${p.rank || 'C'}</span>
+                                <span class="text-[9px] font-extrabold border px-1.5 py-0.5 rounded ${consentStyle}">${p.consent || '未承諾'}</span>
+                                <span class="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">${p.type || 'その他'}</span>
+                                <h3 class="text-xs font-bold text-slate-800 truncate">${p.name || '名称未設定'}</h3>
                             </div>
                             <div class="text-[11px] text-slate-500 flex items-center gap-3">
                                 <span class="font-mono"><strong class="text-slate-700 font-bold">${p.area ? p.area.toLocaleString() : '-'}</strong> ㎡ (${areaTsubo} 坪)</span>
                                 <span class="truncate text-slate-400 flex items-center gap-0.5"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${extractArea(p.address)}</span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 self-end sm:self-auto">
-                            <span class="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">推進詳細 <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
+                        <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            <span class="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">推進詳細 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></span>
                         </div>
                     </div>
                 `;
@@ -1201,8 +1226,10 @@
         // Main Property List Renderer
         function renderList() {
             const tableBody = document.getElementById('properties-table-body');
-            document.getElementById('total-list-count').innerText = `全 ${properties.length} 件`;
+            const totalCountEl = document.getElementById('total-list-count');
+            if (totalCountEl) totalCountEl.innerText = `全 ${properties.length} 件`;
 
+            if (!tableBody) return;
             tableBody.innerHTML = '';
 
             if (properties.length === 0) {
@@ -1219,6 +1246,7 @@
             }
 
             properties.forEach(p => {
+                if (!p) return;
                 const areaTsubo = p.area ? (p.area * 0.3025).toFixed(1) : '0.0';
                 const buildingTsubo = p.buildingArea ? (p.buildingArea * 0.3025).toFixed(1) : '0.0';
                 
@@ -1231,8 +1259,9 @@
                     rankBadge = `<span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-extrabold w-6 h-6 rounded-md">C</span>`;
                 }
 
-                // 申込書受領ステータスの判定
-                const hasAppliedTenant = p.tenants && p.tenants.some(t => t.application === '受領');
+                // 申込書受領ステータスの判定（安全設計）
+                const pTenants = p.tenants || [];
+                const hasAppliedTenant = pTenants.some(t => t && t.application === '受領');
                 const appliedBadge = hasAppliedTenant 
                     ? `<span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border-emerald-100">受領済</span>`
                     : `<span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 border-slate-200">未受領</span>`;
@@ -1243,8 +1272,8 @@
                             ${rankBadge}
                         </td>
                         <td class="py-3 px-4">
-                            <div class="font-bold text-slate-800 leading-normal hover:text-brand-600 transition">${p.name}</div>
-                            <div class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[320px]">${p.address}</div>
+                            <div class="font-bold text-slate-800 leading-normal hover:text-brand-600 transition">${p.name || '名称未設定'}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[320px]">${p.address || ''}</div>
                         </td>
                         <!-- Land Area -->
                         <td class="py-3 px-4 text-right font-mono text-slate-700">
@@ -1261,7 +1290,7 @@
                         </td>
                         <td class="py-3 px-4">
                             <span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full ${p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}">
-                                ${p.consent}
+                                ${p.consent || '未承諾'}
                             </span>
                         </td>
                         <td class="py-3 px-4">
@@ -1280,10 +1309,11 @@
             const tableBody = document.getElementById('tenant-table-body');
             const filterType = document.getElementById('tenant-filter-type').value;
             
+            if (!tableBody) return;
             tableBody.innerHTML = '';
 
-            // Filter classification logic
             const filteredTenantDb = tenantDatabase.filter(t => {
+                if (!t) return false;
                 return !filterType || t.type === filterType;
             });
 
@@ -1301,6 +1331,7 @@
             }
 
             filteredTenantDb.forEach(t => {
+                if (!t) return;
                 const feelColor = t.feel === 'A' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : t.feel === 'B' ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200';
                 const statusBadge = t.application === '受領' ? 'bg-brand-500 text-white font-extrabold shadow-2xs' : 'bg-slate-100 text-slate-500 border-slate-200';
                 
@@ -1309,7 +1340,7 @@
                     : `<span class="inline-block text-[9px] font-extrabold tracking-wider bg-brand-50 text-brand-700 border border-brand-200 px-1.5 py-0.5 rounded-md">物件連動</span>`;
 
                 const areaDisplay = t.isManual 
-                    ? t.areaName 
+                    ? (t.areaName || '未定')
                     : `<span class="flex items-center gap-0.5" title="${t.areaName}"><i data-lucide="map-pin" class="w-3 h-3 text-brand-500"></i> ${t.areaName}</span>`;
 
                 const actionButton = t.isManual 
@@ -1320,12 +1351,12 @@
                         </div>
                     ` : `
                         <button onclick="openEditPropertyView('${t.sourcePropertyId}')" class="text-brand-500 hover:text-brand-700 hover:bg-brand-50 px-2 py-1 rounded border border-brand-100 flex items-center gap-0.5" title="物件カルテを開く">
-                            物件 <i data-lucide="external-link" class="w-3 h-3"></i>
+                            物件 <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                         </button>
                     `;
 
                 const rowHtml = `
-                    <tr class="hover:bg-slate-50/50 transition">
+                    <tr class="hover:bg-slate-50/50 transition animate-in fade-in duration-75">
                         <td class="py-2.5 px-4 font-semibold text-[10px]">
                             ${sourceBadge}
                         </td>
@@ -1333,7 +1364,6 @@
                             <div class="font-bold text-slate-800 leading-normal">${t.name}</div>
                             ${!t.isManual ? `<div class="text-[9px] text-slate-400 mt-0.5 max-w-[200px] truncate">連動: ${t.sourcePropertyName}</div>` : ''}
                         </td>
-                        <!-- Object Type Representation inside Tenant database -->
                         <td class="py-2.5 px-4">
                             <span class="inline-block text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200/50">${t.type || "その他"}</span>
                         </td>
@@ -1345,7 +1375,7 @@
                             <div class="text-[10px] text-slate-400 font-medium">${t.sizeTsubo ? t.sizeTsubo.toLocaleString() : '0.0'} 坪</div>
                         </td>
                         <td class="py-2.5 px-4 text-center">
-                            <span class="inline-block text-[10px] font-bold border px-1.5 rounded ${feelColor}">${t.feel}</span>
+                            <span class="inline-block text-[10px] font-bold border px-1.5 rounded ${feelColor}">${t.feel || 'B'}</span>
                         </td>
                         <td class="py-2.5 px-4">
                             <span class="inline-block text-[10px] font-semibold border px-2 py-0.5 rounded ${statusBadge}">
@@ -1365,6 +1395,7 @@
         // Visits Row Handling
         function addVisitRow(date = '', detail = '') {
             const container = document.getElementById('visits-container');
+            if (!container) return;
             const rowId = `visit-row-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
             
             const visitHtml = `
@@ -1380,42 +1411,6 @@
             lucide.createIcons();
         }
 
-        // Map Fullscreen Toggle inside Dashboard
-        function toggleMapMaximize() {
-            isMapMaximized = !isMapMaximized;
-            
-            const mapContainer = document.getElementById('map-container');
-            const rightContainer = document.getElementById('right-dashboard-container');
-            const mapEl = document.getElementById('map');
-            const btn = document.getElementById('btn-map-fullscreen');
-
-            if (isMapMaximized) {
-                // Maximize Map View
-                mapContainer.classList.remove('lg:col-span-5');
-                mapContainer.classList.add('lg:col-span-12');
-                mapEl.style.height = '620px';
-                rightContainer.classList.add('hidden');
-                
-                btn.innerHTML = `<i data-lucide="minimize-2" class="w-3 h-3 text-brand-500"></i> 元に戻す`;
-                showToast("マップを拡大表示しました。広域での推進状況の確認が可能です。", "success");
-            } else {
-                // Restore Default Double-column View
-                mapContainer.classList.remove('lg:col-span-12');
-                mapContainer.classList.add('lg:col-span-5');
-                mapEl.style.height = '380px';
-                rightContainer.classList.remove('hidden');
-                
-                btn.innerHTML = `<i data-lucide="maximize-2" class="w-3 h-3 text-brand-500"></i> 大画面で表示`;
-                showToast("ダッシュボード表示に戻しました。", "info");
-            }
-            
-            lucide.createIcons();
-            // Refresh Map Engine Bounds
-            setTimeout(() => {
-                map.invalidateSize();
-            }, 100);
-        }
-
         function removeVisitRow(rowId) {
             document.getElementById(rowId)?.remove();
         }
@@ -1423,6 +1418,7 @@
         // Tenants Inside Property Detail Row Handling
         function addTenantRow(name = '', feel = 'B', application = '未受領') {
             const container = document.getElementById('tenants-container');
+            if (!container) return;
             const rowId = `tenant-row-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
 
             const tenantHtml = `
@@ -1464,18 +1460,24 @@
         function toggleBrokerFields() {
             const hasBroker = document.getElementById('prop-has-broker').value;
             const container = document.getElementById('broker-details-container');
+            if (!container) return;
             if (hasBroker === 'yes') {
                 container.classList.remove('hidden');
             } else {
                 container.classList.add('hidden');
-                document.getElementById('prop-broker-name').value = '';
-                document.getElementById('prop-broker-contact').value = '';
+                const nameEl = document.getElementById('prop-broker-name');
+                const contactEl = document.getElementById('prop-broker-contact');
+                if (nameEl) nameEl.value = '';
+                if (contactEl) contactEl.value = '';
             }
         }
 
         function openNewPropertyView() {
             document.getElementById('detail-view-title').innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5 text-emerald-500"></i> 物件開発推進情報の新規作成`;
-            document.getElementById('property-form').reset();
+            
+            const form = document.getElementById('property-form');
+            if (form) form.reset();
+            
             document.getElementById('prop-id').value = "";
             document.getElementById('visits-container').innerHTML = "";
             document.getElementById('tenants-container').innerHTML = "";
@@ -1483,7 +1485,9 @@
             document.getElementById('prop-building-tsubo-display').innerText = "0.0 坪";
             
             document.getElementById('prop-confirm-date').value = new Date().toISOString().substring(0, 10);
-            document.getElementById('btn-delete-prop').classList.add('hidden');
+            
+            const btnDel = document.getElementById('btn-delete-prop');
+            if (btnDel) btnDel.classList.add('hidden');
 
             addVisitRow(new Date().toISOString().substring(0, 10), "物件基本情報を確認、推進プロセスを開始。");
             addTenantRow("", "B", "未受領");
@@ -1496,7 +1500,6 @@
             document.getElementById('prop-planning-fee').value = '0';
 
             toggleBrokerFields();
-
             switchView('detail');
             
             // Initialize mini map for new property
@@ -1507,12 +1510,12 @@
             const p = properties.find(item => item.id === id);
             if (!p) return;
 
-            document.getElementById('detail-view-title').innerHTML = `<i data-lucide="folder-kanban" class="w-4.5 h-4.5 text-brand-500"></i> 開発カルテ: <span class="text-brand-700 ml-1 font-extrabold">${p.name}</span>`;
+            document.getElementById('detail-view-title').innerHTML = `<i data-lucide="folder-kanban" class="w-4.5 h-4.5 text-brand-500"></i> 開発カルテ: <span class="text-brand-700 ml-1 font-extrabold">${p.name || '名称未設定'}</span>`;
             document.getElementById('prop-id').value = p.id;
-            document.getElementById('prop-name').value = p.name;
-            document.getElementById('prop-type').value = p.type;
-            document.getElementById('prop-rank').value = p.rank;
-            document.getElementById('prop-address').value = p.address;
+            document.getElementById('prop-name').value = p.name || '';
+            document.getElementById('prop-type').value = p.type || 'その他';
+            document.getElementById('prop-rank').value = p.rank || 'B';
+            document.getElementById('prop-address').value = p.address || '';
             document.getElementById('prop-chiban').value = p.chiban || '';
             document.getElementById('prop-area').value = p.area || '';
             document.getElementById('prop-building-area').value = p.buildingArea || '';
@@ -1546,21 +1549,28 @@
 
             const visitsContainer = document.getElementById('visits-container');
             visitsContainer.innerHTML = "";
-            if (p.visits && p.visits.length > 0) {
-                p.visits.forEach(v => addVisitRow(v.date, v.detail));
+            const pVisits = p.visits || [];
+            if (pVisits.length > 0) {
+                pVisits.forEach(v => {
+                    if (v) addVisitRow(v.date, v.detail);
+                });
             } else {
                 addVisitRow(new Date().toISOString().substring(0, 10), "");
             }
 
             const tenantsContainer = document.getElementById('tenants-container');
             tenantsContainer.innerHTML = "";
-            if (p.tenants && p.tenants.length > 0) {
-                p.tenants.forEach(t => addTenantRow(t.name, t.feel, p.type)); // Fallback type alignment
+            const pTenants = p.tenants || [];
+            if (pTenants.length > 0) {
+                pTenants.forEach(t => {
+                    if (t) addTenantRow(t.name, t.feel, t.application);
+                });
             } else {
                 addTenantRow("", "B", "未受領");
             }
 
-            document.getElementById('btn-delete-prop').classList.remove('hidden');
+            const btnDel = document.getElementById('btn-delete-prop');
+            if (btnDel) btnDel.classList.remove('hidden');
             
             switchView('detail');
 
@@ -1571,6 +1581,8 @@
         // Detailed Map Interactive Initializer
         function initOrUpdateDetailMap(lat, lng) {
             if (!detailMap) {
+                const mapEl = document.getElementById('detail-map');
+                if (!mapEl) return;
                 detailMap = L.map('detail-map').setView([lat || 35.681236, lng || 139.767125], lat && lng ? 15 : 10);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap'
@@ -1604,8 +1616,10 @@
             const fixedLng = parseFloat(lng).toFixed(6);
 
             if (updateInputs) {
-                document.getElementById('prop-lat').value = fixedLat;
-                document.getElementById('prop-lng').value = fixedLng;
+                const latInput = document.getElementById('prop-lat');
+                const lngInput = document.getElementById('prop-lng');
+                if (latInput) latInput.value = fixedLat;
+                if (lngInput) lngInput.value = fixedLng;
                 showToast("ピン位置の経緯度を更新しました。", "success");
             }
 
@@ -1635,7 +1649,7 @@
             }
         }
 
-        // Automatic Geocoding (with stepwise cleansing and query fallback)
+        // HIGH PERFORMANCE JAPANESE GEOCODER (国土地理院 API 改装)
         async function triggerGeocode() {
             const address = document.getElementById('prop-address').value.trim();
             if (!address) {
@@ -1643,35 +1657,22 @@
                 return;
             }
 
-            showToast("住所からマッププロット情報を特定中...", "info");
+            showToast("国土地理院のデータベースから位置情報を照合中...", "info");
 
+            // 国土地理院のアドレスマッチングAPIは、Nominatimのような1秒1回IPブロックが一切なく、超高速・高耐久
             const searchQueries = [address];
 
+            // 丁目以降を削ったフォールバックパターン
             if (address.includes("丁目")) {
-                const parts = address.split("丁目");
-                const clean = parts[0] + "丁目";
-                if (clean !== address && clean.length > 5) {
-                    searchQueries.push(clean);
-                }
+                const clean = address.split("丁目")[0] + "丁目";
+                if (clean !== address) searchQueries.push(clean);
             }
-
-            const cleanChiban = address.replace(/[0-9手０-９]+番地?.*$/, '');
-            if (cleanChiban !== address && cleanChiban.length > 5 && !searchQueries.includes(cleanChiban)) {
+            const cleanChiban = address.replace(/[0-9手ー‐\-０-９]+番地?.*$/, '');
+            if (cleanChiban && cleanChiban !== address && cleanChiban.length > 5) {
                 searchQueries.push(cleanChiban);
             }
-
-            const cleanHyphen = address.replace(/[-－ー－─‐\s]+[0-9０-９]+[-ー－─‐\s[0-9]０-９]*$/, '');
-            if (cleanHyphen !== address && cleanHyphen.length > 5 && !searchQueries.includes(cleanHyphen)) {
-                searchQueries.push(cleanHyphen);
-            }
-            
-            const cleanTown = cleanHyphen.replace(/[0-9０-９]+$/, '');
-            if (cleanTown !== address && cleanTown.length > 5 && !searchQueries.includes(cleanTown)) {
-                searchQueries.push(cleanTown);
-            }
-
             const matchCity = address.match(/^.*?[市区町村]/);
-            if (matchCity && matchCity[0] !== address && matchCity[0].length > 4 && !searchQueries.includes(matchCity[0])) {
+            if (matchCity && matchCity[0] !== address) {
                 searchQueries.push(matchCity[0]);
             }
 
@@ -1680,14 +1681,16 @@
 
             for (const query of searchQueries) {
                 try {
-                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+                    // 国土地理院 AddressSearch API のコール
+                    const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(query)}`;
                     const res = await fetch(url);
                     if (res.ok) {
                         const data = await res.json();
                         if (data && data.length > 0) {
                             const result = data[0];
-                            const lat = parseFloat(result.lat);
-                            const lng = parseFloat(result.lon);
+                            // coordinates は [経度, 緯度] (LNG, LAT) の順番なのでインデックス[1],[0]
+                            const lng = parseFloat(result.geometry.coordinates[0]);
+                            const lat = parseFloat(result.geometry.coordinates[1]);
                             
                             document.getElementById('prop-lat').value = lat.toFixed(6);
                             document.getElementById('prop-lng').value = lng.toFixed(6);
@@ -1700,18 +1703,18 @@
                         }
                     }
                 } catch (err) {
-                    console.error(`Geocoding error for query [${query}]:`, err);
+                    console.error("GSI Geocoding API Error: ", err);
                 }
             }
 
             if (success) {
                 if (matchedQuery === address) {
-                    showToast("詳細住所のピン位置を特定しました！", "success");
+                    showToast("詳細位置のピンを正確にプロットしました！", "success");
                 } else {
-                    showToast("詳細番地で特定できなかったため、近くにプロットしました。ピンを調整してください。", "warning");
+                    showToast(`詳細番地を特定できなかったため、「${matchedQuery}」付近にプロットしました。ピンを正しい場所へ微調整してください。`, "warning");
                 }
             } else {
-                showToast("該当する位置情報が見つかりませんでした。右のマップをタップして位置を設定してください。", "danger");
+                showToast("該当する位置情報が見つかりませんでした。右のミニマップをクリックしてピンを設定してください。", "danger");
                 initOrUpdateDetailMap(null, null);
             }
         }
@@ -1729,6 +1732,13 @@
                 if (parsed.properties && Array.isArray(parsed.properties)) {
                     properties = parsed.properties;
                     manualTenants = parsed.manualTenants || [];
+                    
+                    // Safe injection of missing variables
+                    properties.forEach(p => {
+                        if (!p.visits) p.visits = [];
+                        if (!p.tenants) p.tenants = [];
+                    });
+
                     saveData();
                     switchView('dashboard');
                     showToast("貼り付けられたデータからデータベースを正常復元しました！", "success");
@@ -1736,6 +1746,10 @@
                 } else if (Array.isArray(parsed)) {
                     properties = parsed;
                     manualTenants = [];
+                    properties.forEach(p => {
+                        if (!p.visits) p.visits = [];
+                        if (!p.tenants) p.tenants = [];
+                    });
                     saveData();
                     switchView('dashboard');
                     showToast("過去バージョンの物件データをインポートしました。", "success");
@@ -1744,7 +1758,7 @@
                     showToast("JSONデータが本システム専用の構成ではありません。", "danger");
                 }
             } catch(e) {
-                showToast("貼り付けられたコードに不備（余分なスペースや文字の欠落）があります。正しいJSONをご確認ください。", "danger");
+                showToast("貼り付けられたコードに不備があります。正しいJSONをご確認ください。", "danger");
             }
         }
 
@@ -1755,19 +1769,140 @@
                 manualTenants: manualTenants
             };
             const jsonStr = JSON.stringify(stateExport, null, 2);
-            document.getElementById('export-data-json').value = jsonStr;
-            document.getElementById('export-modal').classList.remove('hidden');
+            const txt = document.getElementById('export-data-json');
+            if (txt) txt.value = jsonStr;
+            const modal = document.getElementById('export-modal');
+            if (modal) modal.classList.remove('hidden');
         }
 
         function closeExportModal() {
-            document.getElementById('export-modal').classList.add('hidden');
+            const modal = document.getElementById('export-modal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function copyExportJson() {
             const textarea = document.getElementById('export-data-json');
+            if (!textarea) return;
             textarea.select();
             document.execCommand('copy');
             showToast("JSONデータをクリップボードにコピーしました！", "success");
+        }
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('prop-id').value;
+            const name = document.getElementById('prop-name').value.trim();
+            const type = document.getElementById('prop-type').value;
+            const rank = document.getElementById('prop-rank').value;
+            const address = document.getElementById('prop-address').value.trim();
+            const chiban = document.getElementById('prop-chiban').value.trim();
+            const area = parseFloat(document.getElementById('prop-area').value) || null;
+            const buildingArea = parseFloat(document.getElementById('prop-building-area').value) || null;
+            const zone = document.getElementById('prop-zone').value.trim();
+            const confirmDate = document.getElementById('prop-confirm-date').value;
+            
+            const latVal = document.getElementById('prop-lat').value;
+            const lngVal = document.getElementById('prop-lng').value;
+            const lat = latVal ? parseFloat(latVal) : null;
+            const lng = lngVal ? parseFloat(lngVal) : null;
+
+            const landownersVal = document.getElementById('prop-landowners').value;
+            const landowners = landownersVal.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            const mortgageRadios = document.getElementsByName('prop-mortgage');
+            let mortgage = false;
+            mortgageRadios.forEach(radio => {
+                if (radio.checked && radio.value === 'yes') mortgage = true;
+            });
+
+            const consent = document.getElementById('prop-consent').value;
+            const terms = document.getElementById('prop-terms').value.trim();
+
+            // Retrieve Broker specs
+            const hasBroker = document.getElementById('prop-has-broker').value;
+            const brokerName = document.getElementById('prop-broker-name').value.trim();
+            const brokerContact = document.getElementById('prop-broker-contact').value.trim();
+            const brokerFee = parseInt(document.getElementById('prop-broker-fee').value) || 0;
+            const planningFee = parseInt(document.getElementById('prop-planning-fee').value) || 0;
+
+            const visitElements = document.getElementById('visits-container').children;
+            const visits = [];
+            for (let el of visitElements) {
+                const date = el.querySelector('.visit-date').value;
+                const detail = el.querySelector('.visit-detail').value.trim();
+                if (date && detail) {
+                    visits.push({ date, detail });
+                }
+            }
+            visits.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            const tenantElements = document.getElementById('tenants-container').children;
+            const tenants = [];
+            for (let el of tenantElements) {
+                const tName = el.querySelector('.tenant-name').value.trim();
+                const feel = el.querySelector('.tenant-feel').value;
+                const application = el.querySelector('.tenant-app').value;
+                if (tName) {
+                    tenants.push({ name: tName, feel, application });
+                }
+            }
+
+            if (!id) {
+                const newId = `prop-${Date.now()}`;
+                const newProp = {
+                    id: newId,
+                    name, type, rank, address, chiban, area, buildingArea, zone, confirmDate,
+                    landowners, mortgage, consent, terms, visits, tenants, lat, lng,
+                    hasBroker, brokerName, brokerContact, brokerFee, planningFee,
+                    createdAt: new Date().toISOString()
+                };
+                properties.push(newProp);
+                showToast("物件推進カルテを新規に立ち上げました。", "success");
+            } else {
+                const idx = properties.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    properties[idx] = {
+                        ...properties[idx],
+                        name, type, rank, address, chiban, area, buildingArea, zone, confirmDate,
+                        landowners, mortgage, consent, terms, visits, tenants, lat, lng,
+                        hasBroker, brokerName: hasBroker === 'yes' ? brokerName : '',
+                        brokerContact: hasBroker === 'yes' ? brokerContact : '',
+                        brokerFee, planningFee
+                    };
+                    showToast("物件推進データおよびテナントDBを更新しました。", "success");
+                }
+            }
+
+            saveData();
+            switchView(previousView);
+        }
+
+        // Custom confirmation dialogue logic
+        function triggerDeleteProperty() {
+            const id = document.getElementById('prop-id').value;
+            if (!id) return;
+
+            const p = properties.find(item => item.id === id);
+            if (!p) return;
+
+            callConfirm(
+                "物件推進計画の削除", 
+                `「${p.name || '名称未設定'}」に関する地権者情報・面談履歴・想定テナント連動データ・仲介業者登録内容を含む、データベース上のすべてのレコードが完全に抹消されます。本当に削除してよろしいですか？`, 
+                function() {
+                    properties = properties.filter(item => item.id !== id);
+                    saveData();
+                    showToast("物件交渉推進データを完全に削除しました。", "warning");
+                    switchView(previousView);
+                }
+            );
+        }
+
+        // Manual Tenant DB Form Handling
+        function openNewTenantModal() {
+            document.getElementById('tenant-form').reset();
+            document.getElementById('manual-tenant-id').value = "";
+            document.getElementById('tenant-modal').classList.remove('hidden');
         }
 
         function openEditTenantModal(tenantId) {
@@ -1775,9 +1910,9 @@
             if (!t) return;
 
             document.getElementById('manual-tenant-id').value = t.id;
-            document.getElementById('m-tenant-name').value = t.name;
+            document.getElementById('m-tenant-name').value = t.name || '';
             document.getElementById('m-tenant-type').value = t.type || "その他";
-            document.getElementById('m-tenant-area').value = t.areaName;
+            document.getElementById('m-tenant-area').value = t.areaName || '';
             document.getElementById('m-tenant-size').value = t.sizeM2 || "";
             document.getElementById('m-tenant-tsubo').value = t.sizeTsubo || "";
             document.getElementById('m-tenant-feel').value = t.feel || "B";
@@ -1833,7 +1968,7 @@
 
             callConfirm(
                 "登録テナントの削除", 
-                `直接手動登録された「${t.name}」の希望要件レコードをテナントDBから永久に削除します。よろしいですか？`, 
+                `直接手動登録された「${t.name || '名称未設定'}」の希望要件レコードをテナントDBから永久に削除します。よろしいですか？`, 
                 function() {
                     manualTenants = manualTenants.filter(item => item.id !== tenantId);
                     saveData();
@@ -1849,6 +1984,7 @@
             const icon = document.getElementById('toast-icon');
             const msgEl = document.getElementById('toast-message');
 
+            if (!toast || !icon || !msgEl) return;
             msgEl.innerText = message;
             
             let iconMarkup = '<i data-lucide="info" class="w-4 h-4 text-sky-400"></i>';
@@ -1946,7 +2082,8 @@
         }
 
         function triggerImport() {
-            document.getElementById('importFile').click();
+            const input = document.getElementById('importFile');
+            if (input) input.click();
         }
 
         function importData(event) {
@@ -1960,6 +2097,13 @@
                     if (parsed.properties && Array.isArray(parsed.properties)) {
                         properties = parsed.properties;
                         manualTenants = parsed.manualTenants || [];
+                        
+                        // Safe inject nill values
+                        properties.forEach(p => {
+                            if (!p.visits) p.visits = [];
+                            if (!p.tenants) p.tenants = [];
+                        });
+
                         saveData();
                         switchView('dashboard');
                         showToast("外部ファイルからデータを正常に復元しました！", "success");
@@ -1967,6 +2111,10 @@
                     } else if (Array.isArray(parsed)) {
                         properties = parsed;
                         manualTenants = [];
+                        properties.forEach(p => {
+                            if (!p.visits) p.visits = [];
+                            if (!p.tenants) p.tenants = [];
+                        });
                         saveData();
                         switchView('dashboard');
                         showToast("以前の物件データを正常に復元しました。", "success");
