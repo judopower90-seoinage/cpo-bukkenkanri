@@ -227,7 +227,7 @@
                             <th class="py-2.5 px-4 w-28">申込書</th>
                         </tr>
                     </thead>
-                    <tbody id="properties-table-body" class="divide-y divide-slate-100 text-xs">
+                    <tbody id="properties-table-body" class="divide-y divide-slate-100 text-sm">
                         <!-- Filled by JS -->
                     </tbody>
                 </table>
@@ -1203,18 +1203,18 @@
                     <div onclick="openEditPropertyView('${p.id}')" class="bg-white hover:bg-slate-50 border border-slate-200/60 rounded-xl p-3.5 transition cursor-pointer flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-2xs hover:shadow-xs animate-in fade-in duration-100">
                         <div class="space-y-1.5 flex-grow min-w-0">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="text-[9px] font-extrabold border px-1.5 py-0.5 rounded ${rankColor}">ランク ${p.rank || 'C'}</span>
-                                <span class="text-[9px] font-extrabold border px-1.5 py-0.5 rounded ${consentStyle}">${p.consent || '未承諾'}</span>
-                                <span class="text-[10px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">${p.type || 'その他'}</span>
-                                <h3 class="text-xs font-bold text-slate-800 truncate">${p.name || '名称未設定'}</h3>
+                                <span class="text-[11px] font-extrabold border px-1.5 py-0.5 rounded ${rankColor}">ランク ${p.rank || 'C'}</span>
+                                <span class="text-[11px] font-extrabold border px-1.5 py-0.5 rounded ${consentStyle}">${p.consent || '未承諾'}</span>
+                                <span class="text-xs font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">${p.type || 'その他'}</span>
+                                <h3 class="text-sm font-bold text-slate-800 truncate">${p.name || '名称未設定'}</h3>
                             </div>
-                            <div class="text-[11px] text-slate-500 flex items-center gap-3">
+                            <div class="text-xs text-slate-500 flex items-center gap-3">
                                 <span class="font-mono"><strong class="text-slate-700 font-bold">${p.area ? p.area.toLocaleString() : '-'}</strong> ㎡ (${areaTsubo} 坪)</span>
                                 <span class="truncate text-slate-400 flex items-center gap-0.5"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> ${extractArea(p.address)}</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                            <span class="text-[10px] text-slate-400 font-semibold flex items-center gap-0.5">推進詳細 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></span>
+                            <span class="text-xs text-slate-400 font-semibold flex items-center gap-0.5">推進詳細 <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></span>
                         </div>
                     </div>
                 `;
@@ -1260,19 +1260,19 @@
                 
                 let rankBadge = '';
                 if (p.rank === 'A') {
-                    rankBadge = `<span class="inline-flex items-center justify-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-extrabold w-6 h-6 rounded-md">A</span>`;
+                    rankBadge = `<span class="inline-flex items-center justify-center bg-amber-50 text-amber-700 border border-amber-200 text-xs font-extrabold w-6 h-6 rounded-md">A</span>`;
                 } else if (p.rank === 'B') {
-                    rankBadge = `<span class="inline-flex items-center justify-center bg-brand-50 text-brand-700 border border-brand-100 text-[10px] font-extrabold w-6 h-6 rounded-md">B</span>`;
+                    rankBadge = `<span class="inline-flex items-center justify-center bg-brand-50 text-brand-700 border border-brand-100 text-xs font-extrabold w-6 h-6 rounded-md">B</span>`;
                 } else {
-                    rankBadge = `<span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-extrabold w-6 h-6 rounded-md">C</span>`;
+                    rankBadge = `<span class="inline-flex items-center justify-center bg-slate-100 text-slate-600 border border-slate-200 text-xs font-extrabold w-6 h-6 rounded-md">C</span>`;
                 }
 
                 // 申込書受領ステータスの判定（安全設計）
                 const pTenants = p.tenants || [];
                 const hasAppliedTenant = pTenants.some(t => t && t.application === '受領');
                 const appliedBadge = hasAppliedTenant 
-                    ? `<span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border-emerald-100">受領済</span>`
-                    : `<span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 border-slate-200">未受領</span>`;
+                    ? `<span class="inline-block text-xs font-extrabold border px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border-emerald-100">受領済</span>`
+                    : `<span class="inline-block text-xs font-extrabold border px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 border-slate-200">未受領</span>`;
 
                 const rowHtml = `
                     <tr onclick="openEditPropertyView('${p.id}')" class="hover:bg-slate-50 cursor-pointer transition">
@@ -1280,24 +1280,24 @@
                             ${rankBadge}
                         </td>
                         <td class="py-3 px-4">
-                            <div class="font-bold text-slate-800 leading-normal hover:text-brand-600 transition">${p.name || '名称未設定'}</div>
-                            <div class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[320px]">${p.address || ''}</div>
+                            <div class="font-bold text-slate-800 text-sm leading-normal hover:text-brand-600 transition">${p.name || '名称未設定'}</div>
+                            <div class="text-xs text-slate-400 mt-0.5 truncate max-w-[320px]">${p.address || ''}</div>
                         </td>
                         <!-- Land Area -->
-                        <td class="py-3 px-4 text-right font-mono text-slate-700">
-                            <span class="font-bold">${p.area ? p.area.toLocaleString() : '-'}</span> <span class="text-slate-400 text-[10px]">㎡</span>
-                            <div class="text-[10px] text-slate-400 font-medium">${areaTsubo} 坪</div>
+                        <td class="py-3 px-4 text-right font-mono text-slate-700 text-sm">
+                            <span class="font-bold">${p.area ? p.area.toLocaleString() : '-'}</span> <span class="text-slate-400 text-xs">㎡</span>
+                            <div class="text-xs text-slate-400 font-medium">${areaTsubo} 坪</div>
                         </td>
                         <!-- Floor Area -->
-                        <td class="py-3 px-4 text-right font-mono text-slate-700">
-                            <span class="font-bold">${p.buildingArea ? p.buildingArea.toLocaleString() : '-'}</span> <span class="text-slate-400 text-[10px]">㎡</span>
-                            <div class="text-[10px] text-slate-400 font-medium">${p.buildingArea ? buildingTsubo + ' 坪' : '-'}</div>
+                        <td class="py-3 px-4 text-right font-mono text-slate-700 text-sm">
+                            <span class="font-bold">${p.buildingArea ? p.buildingArea.toLocaleString() : '-'}</span> <span class="text-slate-400 text-xs">㎡</span>
+                            <div class="text-xs text-slate-400 font-medium">${p.buildingArea ? buildingTsubo + ' 坪' : '-'}</div>
                         </td>
                         <td class="py-3 px-4">
-                            <span class="inline-block text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/40">${p.type || "その他"}</span>
+                            <span class="inline-block text-xs font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200/40">${p.type || "その他"}</span>
                         </td>
                         <td class="py-3 px-4">
-                            <span class="inline-block text-[10px] font-extrabold border px-2 py-0.5 rounded-full ${p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}">
+                            <span class="inline-block text-xs font-extrabold border px-2 py-0.5 rounded-full ${p.consent === '承諾済' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}">
                                 ${p.consent || '未承諾'}
                             </span>
                         </td>
