@@ -1245,7 +1245,15 @@
                 return;
             }
 
-            properties.forEach(p => {
+            // ランク A → B → C の順にソートして並び替え
+            const rankOrder = { 'A': 1, 'B': 2, 'C': 3 };
+            const sortedProperties = [...properties].sort((a, b) => {
+                const rA = rankOrder[a ? a.rank : ''] || 99;
+                const rB = rankOrder[b ? b.rank : ''] || 99;
+                return rA - rB;
+            });
+
+            sortedProperties.forEach(p => {
                 if (!p) return;
                 const areaTsubo = p.area ? (p.area * 0.3025).toFixed(1) : '0.0';
                 const buildingTsubo = p.buildingArea ? (p.buildingArea * 0.3025).toFixed(1) : '0.0';
